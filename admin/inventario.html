@@ -326,119 +326,117 @@
       categoryModal.classList.add('open');
     });
 
+    // ── Supabase Integration ──
+    function isSupabaseReady() {
+      const url = import.meta.env?.VITE_SUPABASE_URL || '';
+      return url && !url.includes('TU-PROYECTO') && url.startsWith('http');
+    }
+
     document.getElementById('btn-cancel-category').addEventListener('click', () => {
       categoryModal.classList.remove('open');
     });
 
-    document.getElementById('category-form').addEventListener('submit', (e) => {
+    // ── Category Form Submit ──
+    document.getElementById('category-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const id = document.getElementById('cat-id').value;
       const nombre = document.getElementById('cat-name').value;
       const orden = parseInt(document.getElementById('cat-order').value) || 0;
 
+      if (isSupabaseReady()) {
+        try {
+          const { createCategory, updateCategory } = await import('/js/supabase.js');
+          if (id && !id.startsWith('cat-')) {
+            await updateCategory(id, { nombre, orden });
+          } else {
+            await createCategory({ nombre, orden, activa: true });
+          }
+          const { getAllCategories } = await import('/js/supabase.js');
+          categories = await getAllCategories();
+        } catch (err) {
+          console.warn('Fallback to local category save:', err);
+        }
+      }
+
+      // Local fallback sync
       if (id) {
         const cat = categories.find(c => c.id === id);
         if (cat) { cat.nombre = nombre; cat.orden = orden; }
       } else {
         categories.push({ id: 'cat-' + Date.now(), nombre, orden, activa: true });
       }
+
       saveData();
       renderCategories();
       categoryModal.classList.remove('open');
     });
 
-    // ── Product CRUD ──
-    const formCard = document.getElementById('product-form-card');
-
-    // ── Image File Upload Handler ──
-    const fileInput = document.getElementById('prod-image-file');
-    const imageHidden = document.getElementById('prod-image');
-    const imageText = document.getElementById('prod-image-text');
-    const previewContainer = document.getElementById('prod-image-preview-container');
-    const previewImg = document.getElementById('prod-image-preview');
-
-    fileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        imageText.textContent = `📷 ${file.name}`;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          imageHidden.value = ev.target.result;
-          previewImg.src = ev.target.result;
-          previewContainer.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
+    window.deleteCategory = async (id) => {
+      if (!confirm('¿Eliminar esta categoría?')) return;
+      if (isSupabaseReady() && !id.startsWith('cat-')) {
+        try {
+          const { deleteCategory: delCat } = await import('/js/supabase.js');
+          await delCat(id);
+        } catch (e) {
+          console.warn('Could not delete in Supabase:', e);
+        }
       }
-    });
-
-    function resetImagePreview(url = '') {
-      imageHidden.value = url;
-      fileInput.value = '';
-      if (url) {
-        previewImg.src = url;
-        previewContainer.style.display = 'block';
-        imageText.textContent = '📷 Cambiar foto';
-      } else {
-        previewImg.src = '';
-        previewContainer.style.display = 'none';
-        imageText.textContent = '📷 Toca aquí para elegir foto';
-      }
-    }
-
-    document.getElementById('btn-new-product').addEventListener('click', () => {
-      document.getElementById('product-form').reset();
-      document.getElementById('product-id').value = '';
-      document.getElementById('prod-active').checked = true;
-      resetImagePreview('');
-      document.getElementById('form-title').textContent = 'Nuevo Producto';
-      formCard.style.display = 'block';
-      formCard.scrollIntoView({ behavior: 'smooth' });
-    });
-
-    document.getElementById('btn-cancel-form').addEventListener('click', () => {
-      formCard.style.display = 'none';
-    });
-
-    window.editProduct = (id) => {
-      const p = products.find(pr => pr.id === id);
-      if (!p) return;
-      document.getElementById('product-id').value = p.id;
-      document.getElementById('prod-name').value = p.nombre;
-      document.getElementById('prod-category').value = p.categoria_id;
-      document.getElementById('prod-price').value = p.precio;
-      document.getElementById('prod-stock').value = p.stock;
-      document.getElementById('prod-badge').value = p.badge || '';
-      resetImagePreview(p.imagen_url || '');
-      document.getElementById('prod-description').value = p.descripcion || '';
-      document.getElementById('prod-featured').checked = p.destacado;
-      document.getElementById('prod-active').checked = p.activo;
-      document.getElementById('form-title').textContent = 'Editar Producto';
-      formCard.style.display = 'block';
-      formCard.scrollIntoView({ behavior: 'smooth' });
-    };
-
-    window.deleteProduct = (id) => {
-      if (!confirm('¿Eliminar este producto?')) return;
-      products = products.filter(p => p.id !== id);
+      categories = categories.filter(c => c.id !== id);
       saveData();
+      renderCategories();
       renderProducts();
     };
 
-    document.getElementById('product-form').addEventListener('submit', (e) => {
+    // ── Product Form Submit ──
+    document.getElementById('product-form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const saveBtn = document.getElementById('btn-save-product');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Guardando...';
+
       const id = document.getElementById('product-id').value;
+      let imageUrl = document.getElementById('prod-image').value || '';
+      const selectedFile = fileInput.files[0];
+
+      // Upload file to Supabase Storage if available
+      if (selectedFile && isSupabaseReady()) {
+        try {
+          const { uploadProductImage } = await import('/js/supabase.js');
+          imageUrl = await uploadProductImage(selectedFile);
+        } catch (err) {
+          console.warn('Supabase storage upload fallback to Data URL:', err);
+        }
+      }
+
       const productData = {
         nombre: document.getElementById('prod-name').value,
         categoria_id: document.getElementById('prod-category').value,
         precio: parseFloat(document.getElementById('prod-price').value),
         stock: parseInt(document.getElementById('prod-stock').value),
         badge: document.getElementById('prod-badge').value || null,
-        imagen_url: document.getElementById('prod-image').value || '',
+        imagen_url: imageUrl,
         descripcion: document.getElementById('prod-description').value || '',
         destacado: document.getElementById('prod-featured').checked,
         activo: document.getElementById('prod-active').checked,
       };
 
+      // Save to Supabase Cloud Database if configured
+      if (isSupabaseReady()) {
+        try {
+          const { createProduct, updateProduct } = await import('/js/supabase.js');
+          if (id && !id.startsWith('prod-')) {
+            await updateProduct(id, productData);
+          } else {
+            await createProduct(productData);
+          }
+          const { getAllProducts } = await import('/js/supabase.js');
+          products = await getAllProducts();
+        } catch (err) {
+          console.warn('Fallback to local product save:', err);
+        }
+      }
+
+      // Local fallback sync
       if (id) {
         const idx = products.findIndex(p => p.id === id);
         if (idx >= 0) products[idx] = { ...products[idx], ...productData };
@@ -449,7 +447,24 @@
       saveData();
       renderProducts();
       formCard.style.display = 'none';
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Guardar Producto';
     });
+
+    window.deleteProduct = async (id) => {
+      if (!confirm('¿Eliminar este producto?')) return;
+      if (isSupabaseReady() && !id.startsWith('prod-')) {
+        try {
+          const { deleteProduct: delProd } = await import('/js/supabase.js');
+          await delProd(id);
+        } catch (e) {
+          console.warn('Could not delete product in Supabase:', e);
+        }
+      }
+      products = products.filter(p => p.id !== id);
+      saveData();
+      renderProducts();
+    };
 
     // ── Search ──
     document.getElementById('inventory-search').addEventListener('input', (e) => {
@@ -469,9 +484,25 @@
     });
 
     // ── Init ──
-    loadData();
-    renderCategories();
-    renderProducts();
+    async function initData() {
+      loadData();
+      if (isSupabaseReady()) {
+        try {
+          const { getAllCategories, getAllProducts } = await import('/js/supabase.js');
+          const cloudCats = await getAllCategories();
+          const cloudProds = await getAllProducts();
+          if (cloudCats?.length) categories = cloudCats;
+          if (cloudProds?.length) products = cloudProds;
+          saveData();
+        } catch (e) {
+          console.info('Supabase init fallback to local data');
+        }
+      }
+      renderCategories();
+      renderProducts();
+    }
+
+    initData();
   </script>
 </body>
 </html>
