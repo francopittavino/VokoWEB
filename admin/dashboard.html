@@ -163,17 +163,21 @@
     }
 
     // Load stats from Supabase (or use demo data)
-    try {
-      const { getDashboardStats } = await import('/js/supabase.js');
-      const stats = await getDashboardStats();
-      document.getElementById('stat-products').textContent = stats.totalProducts;
-      document.getElementById('stat-sales-today').textContent = `$${stats.salesToday.toLocaleString('es-AR')}`;
-      document.getElementById('stat-orders').textContent = stats.salesCount;
-      document.getElementById('stat-low-stock').textContent = stats.lowStockCount;
-    } catch {
-      // Demo mode - keep default values
-      console.info('📊 Dashboard en modo demo');
+    async function initStats() {
+      try {
+        const { getDashboardStats } = await import('/js/supabase.js');
+        const stats = await getDashboardStats();
+        document.getElementById('stat-products').textContent = stats.totalProducts;
+        document.getElementById('stat-sales-today').textContent = `$${stats.salesToday.toLocaleString('es-AR')}`;
+        document.getElementById('stat-orders').textContent = stats.salesCount;
+        document.getElementById('stat-low-stock').textContent = stats.lowStockCount;
+      } catch {
+        // Demo mode - keep default values
+        console.info('📊 Dashboard en modo demo');
+      }
     }
+
+    initStats();
   </script>
 </body>
 </html>
