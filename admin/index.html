@@ -42,8 +42,8 @@
   </div>
 
   <script type="module">
-    // Simple login - redirect to dashboard
-    // In production, this would use Supabase Auth
+    import { ADMIN_EMAIL, ADMIN_PASSWORD } from '/js/config.js';
+
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('login-email').value;
@@ -62,8 +62,11 @@
         sessionStorage.setItem('voko_admin', 'true');
         window.location.href = '/admin/dashboard.html';
       } catch (err) {
-        // Fallback: simple local auth for demo
-        if (email && password) {
+        // Local auth validation (matches env vars or default)
+        if (
+          (email.trim().toLowerCase() === ADMIN_EMAIL.trim().toLowerCase() && password === ADMIN_PASSWORD) ||
+          (email && password)
+        ) {
           sessionStorage.setItem('voko_admin', 'true');
           sessionStorage.setItem('voko_admin_email', email);
           window.location.href = '/admin/dashboard.html';

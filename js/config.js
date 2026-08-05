@@ -4,11 +4,12 @@
    ============================================ */
 
 // ──────────────────────────────────────────
-// SUPABASE CONFIG
-// Reemplazar con tus credenciales reales de supabase.com
+// SUPABASE & ENV CONFIG
 // ──────────────────────────────────────────
-export const SUPABASE_URL = 'https://TU-PROYECTO.supabase.co';
-export const SUPABASE_ANON_KEY = 'TU-ANON-KEY-AQUI';
+export const SUPABASE_URL = import.meta.env?.VITE_SUPABASE_URL || 'https://TU-PROYECTO.supabase.co';
+export const SUPABASE_ANON_KEY = import.meta.env?.VITE_SUPABASE_ANON_KEY || 'TU-ANON-KEY-AQUI';
+export const ADMIN_EMAIL = import.meta.env?.VITE_ADMIN_EMAIL || 'admin@vokoaccesorios.com';
+export const ADMIN_PASSWORD = import.meta.env?.VITE_ADMIN_PASSWORD || 'admin123';
 
 // ──────────────────────────────────────────
 // APP CONFIG
