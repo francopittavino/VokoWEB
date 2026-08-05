@@ -93,8 +93,15 @@
                 </select>
               </div>
               <div class="input-group">
-                <label class="input-label" for="prod-image">URL de Imagen</label>
-                <input type="url" class="input-field" id="prod-image" placeholder="https://...">
+                <label class="input-label">Foto del Producto (subir desde tu dispositivo)</label>
+                <label class="image-upload" for="prod-image-file" style="padding: var(--space-4); text-align: center; border: 2px dashed var(--color-outline-variant); border-radius: var(--radius-md); cursor: pointer; display: block;">
+                  <span id="prod-image-text">📷 Toca aquí para elegir foto</span>
+                  <input type="file" id="prod-image-file" accept="image/*" style="display: none;">
+                </label>
+                <input type="hidden" id="prod-image">
+                <div id="prod-image-preview-container" style="display: none; margin-top: var(--space-2); text-align: center;">
+                  <img id="prod-image-preview" alt="Vista previa" style="max-height: 120px; border-radius: var(--radius-md); object-fit: cover;">
+                </div>
               </div>
             </div>
             <div class="admin-form-row" style="grid-template-columns: 1fr;">
@@ -343,10 +350,46 @@
     // ── Product CRUD ──
     const formCard = document.getElementById('product-form-card');
 
+    // ── Image File Upload Handler ──
+    const fileInput = document.getElementById('prod-image-file');
+    const imageHidden = document.getElementById('prod-image');
+    const imageText = document.getElementById('prod-image-text');
+    const previewContainer = document.getElementById('prod-image-preview-container');
+    const previewImg = document.getElementById('prod-image-preview');
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        imageText.textContent = `📷 ${file.name}`;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          imageHidden.value = ev.target.result;
+          previewImg.src = ev.target.result;
+          previewContainer.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    function resetImagePreview(url = '') {
+      imageHidden.value = url;
+      fileInput.value = '';
+      if (url) {
+        previewImg.src = url;
+        previewContainer.style.display = 'block';
+        imageText.textContent = '📷 Cambiar foto';
+      } else {
+        previewImg.src = '';
+        previewContainer.style.display = 'none';
+        imageText.textContent = '📷 Toca aquí para elegir foto';
+      }
+    }
+
     document.getElementById('btn-new-product').addEventListener('click', () => {
       document.getElementById('product-form').reset();
       document.getElementById('product-id').value = '';
       document.getElementById('prod-active').checked = true;
+      resetImagePreview('');
       document.getElementById('form-title').textContent = 'Nuevo Producto';
       formCard.style.display = 'block';
       formCard.scrollIntoView({ behavior: 'smooth' });
@@ -365,7 +408,7 @@
       document.getElementById('prod-price').value = p.precio;
       document.getElementById('prod-stock').value = p.stock;
       document.getElementById('prod-badge').value = p.badge || '';
-      document.getElementById('prod-image').value = p.imagen_url || '';
+      resetImagePreview(p.imagen_url || '');
       document.getElementById('prod-description').value = p.descripcion || '';
       document.getElementById('prod-featured').checked = p.destacado;
       document.getElementById('prod-active').checked = p.activo;

@@ -91,51 +91,69 @@ let currentFilters = {
 // ──────────────────────────────────────────
 // CHECK IF SUPABASE IS CONFIGURED
 // ──────────────────────────────────────────
-function isSupabaseConfigured() {
-  const { SUPABASE_URL } = await_import_config();
-  return SUPABASE_URL && !SUPABASE_URL.includes('TU-PROYECTO');
-}
-
-function await_import_config() {
-  try {
-    // Check the config values
-    const configModule = document.querySelector('[data-supabase-url]');
-    return { SUPABASE_URL: configModule?.dataset.supabaseUrl || 'TU-PROYECTO' };
-  } catch {
-    return { SUPABASE_URL: 'TU-PROYECTO' };
-  }
+function isSupabaseReady() {
+  const url = import.meta.env?.VITE_SUPABASE_URL || '';
+  return url && !url.includes('TU-PROYECTO') && url.startsWith('http');
 }
 
 // ──────────────────────────────────────────
-// LOAD DATA
+// LOAD DATA (Instant local check + Supabase fallback)
 // ──────────────────────────────────────────
 
 export async function loadProducts(filters = {}) {
-  try {
-    allProducts = await getProducts(filters);
-  } catch {
-    // Fallback to demo data if Supabase isn't configured
-    console.info('📦 Usando datos de demostración. Conectá Supabase para datos reales.');
-    allProducts = [...DEMO_PRODUCTS];
+  // Check localStorage first (reflects Admin Panel creations instantly)
+  const stored = localStorage.getItem('voko_products');
+  if (stored) {
+    try {
+      allProducts = JSON.parse(stored);
+      return filterProducts(allProducts);
+    } catch {
+      // Fallback if parsing fails
+    }
   }
+
+  // If Supabase is real & configured, fetch from cloud
+  if (isSupabaseReady()) {
+    try {
+      allProducts = await getProducts(filters);
+      localStorage.setItem('voko_products', JSON.stringify(allProducts));
+      return allProducts;
+    } catch (e) {
+      console.warn('Could not connect to Supabase, using local data.', e);
+    }
+  }
+
+  // Instant fallback to demo products
+  allProducts = [...DEMO_PRODUCTS];
+  localStorage.setItem('voko_products', JSON.stringify(allProducts));
   return allProducts;
 }
 
 export async function loadCategories() {
-  try {
-    allCategories = await getCategories();
-  } catch {
-    allCategories = [...DEMO_CATEGORIES];
+  const stored = localStorage.getItem('voko_categories');
+  if (stored) {
+    try {
+      allCategories = JSON.parse(stored);
+      return allCategories;
+    } catch {}
   }
+
+  if (isSupabaseReady()) {
+    try {
+      allCategories = await getCategories();
+      localStorage.setItem('voko_categories', JSON.stringify(allCategories));
+      return allCategories;
+    } catch {}
+  }
+
+  allCategories = [...DEMO_CATEGORIES];
+  localStorage.setItem('voko_categories', JSON.stringify(allCategories));
   return allCategories;
 }
 
 export async function loadFeaturedProducts(limit = 4) {
-  try {
-    return await getProducts({ featured: true, limit });
-  } catch {
-    return DEMO_PRODUCTS.filter((p) => p.destacado).slice(0, limit);
-  }
+  const prods = await loadProducts();
+  return prods.filter((p) => p.destacado).slice(0, limit);
 }
 
 // ──────────────────────────────────────────
