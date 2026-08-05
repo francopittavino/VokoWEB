@@ -1,0 +1,18 @@
+{
+  "name": "voko-accesorios",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Voko Accesorios — Boutique artesanal de accesorios de cuero",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  }
+}

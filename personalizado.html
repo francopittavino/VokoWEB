@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pedido Personalizado | VOKO ACCESORIOS</title>
+  <meta name="description" content="Diseñá tu accesorio ideal. Compartí tu visión con Voko Accesorios y nuestros artesanos crearán una pieza única hecha a medida.">
+  <link rel="stylesheet" href="/css/variables.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar" id="navbar">
+    <div class="navbar__inner">
+      <a href="/" class="navbar__logo">VOKO <span>ACCESORIOS</span></a>
+      <div class="navbar__nav">
+        <a href="/" class="navbar__link">Inicio</a>
+        <a href="/productos.html" class="navbar__link">Productos</a>
+        <a href="/nosotros.html" class="navbar__link">Nosotros</a>
+        <a href="/personalizado.html" class="navbar__link active">Personalizado</a>
+      </div>
+      <div class="navbar__actions">
+        <a href="https://www.instagram.com/voko.accesorios" target="_blank" class="navbar__icon-btn hide-mobile" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/></svg></a>
+        <button class="navbar__icon-btn" data-cart-toggle aria-label="Carrito"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg><span class="navbar__cart-badge">0</span></button>
+        <button class="navbar__hamburger" aria-label="Menú"><span></span><span></span><span></span></button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="mobile-menu">
+    <a href="/" class="mobile-menu__link">Inicio</a>
+    <a href="/productos.html" class="mobile-menu__link">Productos</a>
+    <a href="/nosotros.html" class="mobile-menu__link">Nosotros</a>
+    <a href="/personalizado.html" class="mobile-menu__link active">Personalizado</a>
+  </div>
+
+  <!-- Main -->
+  <main class="main-content">
+
+    <!-- Header -->
+    <section class="section container" style="text-align: center; padding-bottom: 0;">
+      <h1 style="font-family: var(--font-display); font-size: var(--fs-display-md); color: var(--color-primary); margin-bottom: var(--space-4);">Pedido a medida</h1>
+      <p style="font-size: var(--fs-body-lg); color: var(--color-on-surface-variant); max-width: 600px; margin-inline: auto;">
+        Compartí tu visión con nosotros. Subí una imagen de referencia o describí detalladamente el accesorio que deseás, y nuestros artesanos lo harán realidad.
+      </p>
+    </section>
+
+    <!-- Custom Order Form + Inspiration -->
+    <section class="section container">
+      <div class="custom-order-section">
+        <div class="custom-order-form reveal">
+          <form id="custom-order-form">
+            <!-- Image Upload -->
+            <div class="input-group" style="margin-bottom: var(--space-6);">
+              <label class="input-label">Foto de referencia (opcional)</label>
+              <label class="image-upload" id="image-upload-area" for="ref-image">
+                <div class="image-upload__icon">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                  </svg>
+                </div>
+                <p class="image-upload__text">Hacé clic para subir o arrastrá una imagen</p>
+                <p class="image-upload__hint">PNG, JPG hasta 10MB</p>
+                <input type="file" id="ref-image" accept="image/*" style="display: none;">
+              </label>
+              <div id="image-preview" style="display: none; margin-top: var(--space-3); border-radius: var(--radius-md); overflow: hidden;">
+                <img id="preview-img" alt="Vista previa" style="width: 100%; max-height: 200px; object-fit: cover;">
+              </div>
+            </div>
+
+            <!-- Description -->
+            <div class="input-group" style="margin-bottom: var(--space-6);">
+              <label class="input-label" for="order-description">Descripción del pedido</label>
+              <textarea class="input-field" id="order-description" placeholder="Contanos los detalles: colores, materiales, medidas, o cualquier deseo especial..." rows="6" required></textarea>
+            </div>
+
+            <!-- Submit -->
+            <button type="submit" class="btn btn--whatsapp btn--lg btn--full">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+              Enviar por WhatsApp
+            </button>
+            <p style="margin-top: var(--space-3); font-size: var(--fs-label-md); color: var(--color-on-surface-variant); text-align: center;">
+              * Al enviar, serás redirigido a WhatsApp para finalizar los detalles con nuestro equipo.
+            </p>
+          </form>
+        </div>
+
+        <!-- Inspiration Image -->
+        <div class="custom-order-inspiration reveal reveal-delay-1">
+          <img src="https://images.unsplash.com/photo-1611078489935-0cb964de46d6?w=600&h=800&fit=crop" alt="Inspiración artesanal" loading="lazy">
+          <div class="custom-order-inspiration__overlay">
+            <h2 class="custom-order-inspiration__title">Inspiración Artesanal</h2>
+            <p class="custom-order-inspiration__text">Cada pieza cuenta una historia única. Dejá que la tuya sea creada con paciencia y detalle en nuestro taller.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Process Steps -->
+    <section class="section container">
+      <div class="process-steps reveal">
+        <div class="process-step">
+          <div class="process-step__icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="process-step__title">Diseño</h3>
+            <p class="process-step__text">Convertimos tus ideas en bocetos reales y funcionales.</p>
+          </div>
+        </div>
+        <div class="process-step">
+          <div class="process-step__icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="process-step__title">Artesanía</h3>
+            <p class="process-step__text">Trabajamos a mano con los mejores materiales premium.</p>
+          </div>
+        </div>
+        <div class="process-step">
+          <div class="process-step__icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="process-step__title">Entrega</h3>
+            <p class="process-step__text">Recibí tu pieza única en la puerta de tu casa.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__grid">
+        <div class="footer__brand">
+          <div class="footer__logo">VOKO</div>
+          <p class="footer__tagline">Creaciones hechas a mano que capturan la esencia de lo auténtico y lo natural.</p>
+        </div>
+        <div>
+          <h3 class="footer__section-title">Explorar</h3>
+          <a href="/productos.html" class="footer__link">Productos</a>
+          <a href="/productos.html" class="footer__link">Nueva Colección</a>
+          <a href="#" class="footer__link">Regalos</a>
+        </div>
+        <div>
+          <h3 class="footer__section-title">Servicio</h3>
+          <a href="#" class="footer__link">Guía de Tallas</a>
+          <a href="#" class="footer__link">Envíos</a>
+          <a href="#" class="footer__link">Términos de Servicio</a>
+        </div>
+        <div>
+          <h3 class="footer__section-title">Conectar</h3>
+          <div class="footer__socials">
+            <a href="https://www.instagram.com/voko.accesorios" target="_blank" class="footer__social-link" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/></svg></a>
+            <a href="https://www.facebook.com/profile.php?id=61589357885130" target="_blank" class="footer__social-link" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></a>
+          </div>
+          <p style="font-size: var(--fs-label-sm); color: var(--color-on-surface-variant); margin-top: var(--space-3);">© 2024 Voko Accesorios. Hecho a mano con pasión.</p>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Cart Sidebar -->
+  <div class="cart-overlay"></div>
+  <aside class="cart-sidebar">
+    <div class="cart-sidebar__header"><h2 class="cart-sidebar__title">Tu Carrito</h2><button class="cart-sidebar__close" aria-label="Cerrar"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="cart-sidebar__body"></div>
+    <div class="cart-sidebar__footer"><div class="cart-sidebar__total"><span class="cart-sidebar__total-label">Total estimado</span><span class="cart-sidebar__total-value">$0</span></div><button class="btn btn--whatsapp btn--full cart-sidebar__checkout-btn" disabled>Enviar por WhatsApp</button></div>
+  </aside>
+
+  <!-- WhatsApp FAB -->
+  <a href="https://wa.me/5493434289398" target="_blank" class="whatsapp-fab" aria-label="WhatsApp"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg></a>
+
+  <script type="module">
+    import '/js/navigation.js';
+    import '/js/cart.js';
+
+    // Image upload preview
+    const imageInput = document.getElementById('ref-image');
+    const uploadArea = document.getElementById('image-upload-area');
+    const previewContainer = document.getElementById('image-preview');
+    const previewImg = document.getElementById('preview-img');
+
+    imageInput?.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          previewImg.src = ev.target.result;
+          previewContainer.style.display = 'block';
+          uploadArea.classList.add('has-file');
+          uploadArea.querySelector('.image-upload__text').textContent = file.name;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Drag & drop
+    uploadArea?.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.style.borderColor = 'var(--color-primary)';
+      uploadArea.style.backgroundColor = 'var(--color-primary-fixed)';
+    });
+
+    uploadArea?.addEventListener('dragleave', () => {
+      uploadArea.style.borderColor = '';
+      uploadArea.style.backgroundColor = '';
+    });
+
+    uploadArea?.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.style.borderColor = '';
+      uploadArea.style.backgroundColor = '';
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
+        imageInput.files = e.dataTransfer.files;
+        imageInput.dispatchEvent(new Event('change'));
+      }
+    });
+
+    // Form submit → WhatsApp
+    document.getElementById('custom-order-form')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const description = document.getElementById('order-description').value;
+      const hasImage = imageInput?.files?.length > 0;
+
+      let message = `✨ *Pedido Personalizado — Voko Accesorios*\n\n`;
+      message += `*Descripción:*\n${description}\n\n`;
+      if (hasImage) {
+        message += `📸 _Tengo una foto de referencia que te enviaré por este chat._\n\n`;
+      }
+      message += `¡Gracias! Espero su respuesta 😊`;
+
+      const encoded = encodeURIComponent(message);
+      window.open(`https://wa.me/5493434289398?text=${encoded}`, '_blank');
+    });
+  </script>
+
+</body>
+</html>

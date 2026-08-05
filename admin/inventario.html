@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventario | Admin Voko</title>
+  <link rel="stylesheet" href="/css/variables.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <div class="admin-layout">
+    <div class="admin-sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="admin-sidebar__header">
+        <div class="admin-sidebar__logo">
+          <div class="admin-sidebar__logo-icon">V</div>
+          <div><div class="admin-sidebar__logo-text">Voko Accesorios</div><div class="admin-sidebar__logo-subtitle">Admin Panel</div></div>
+        </div>
+      </div>
+      <nav class="admin-sidebar__nav">
+        <a href="/admin/dashboard.html" class="admin-nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Dashboard</a>
+        <a href="/admin/pos.html" class="admin-nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> Punto de Venta</a>
+        <a href="/admin/inventario.html" class="admin-nav-item active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg> Inventario</a>
+        <a href="/admin/pedidos.html" class="admin-nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg> Pedidos</a>
+        <a href="/admin/calculadora.html" class="admin-nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/></svg> Calculadora</a>
+      </nav>
+      <div class="admin-sidebar__footer">
+        <button class="admin-logout-btn" onclick="sessionStorage.removeItem('voko_admin'); location.href='/admin/'">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Cerrar Sesión
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <button class="admin-topbar__hamburger" id="sidebar-toggle"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+        <h1 class="admin-topbar__title">Inventario</h1>
+        <div class="admin-topbar__actions">
+          <button class="btn btn--primary btn--sm" id="btn-new-category">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            Nueva Categoría
+          </button>
+          <button class="btn btn--primary" id="btn-new-product">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nuevo Producto
+          </button>
+        </div>
+      </header>
+
+      <div class="admin-content">
+        <!-- Product Form (hidden by default) -->
+        <div class="admin-form-card" id="product-form-card" style="display: none;">
+          <h3 class="admin-form-card__title" id="form-title">Nuevo Producto</h3>
+          <form id="product-form">
+            <input type="hidden" id="product-id">
+            <div class="admin-form-row">
+              <div class="input-group">
+                <label class="input-label" for="prod-name">Nombre</label>
+                <input type="text" class="input-field" id="prod-name" placeholder="Ej: Bolso Weekend" required>
+              </div>
+              <div class="input-group">
+                <label class="input-label" for="prod-category">Categoría</label>
+                <select class="input-field" id="prod-category" required>
+                  <option value="">Elegir categoría...</option>
+                </select>
+              </div>
+            </div>
+            <div class="admin-form-row">
+              <div class="input-group">
+                <label class="input-label" for="prod-price">Precio ($)</label>
+                <input type="number" class="input-field" id="prod-price" placeholder="85000" min="0" required>
+              </div>
+              <div class="input-group">
+                <label class="input-label" for="prod-stock">Stock</label>
+                <input type="number" class="input-field" id="prod-stock" placeholder="10" min="0" required>
+              </div>
+            </div>
+            <div class="admin-form-row">
+              <div class="input-group">
+                <label class="input-label" for="prod-badge">Badge</label>
+                <select class="input-field" id="prod-badge">
+                  <option value="">Sin badge</option>
+                  <option value="nuevo">Nuevo</option>
+                  <option value="best-seller">Best Seller</option>
+                  <option value="limitado">Limitado</option>
+                  <option value="elegante">Elegante</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label class="input-label" for="prod-image">URL de Imagen</label>
+                <input type="url" class="input-field" id="prod-image" placeholder="https://...">
+              </div>
+            </div>
+            <div class="admin-form-row" style="grid-template-columns: 1fr;">
+              <div class="input-group">
+                <label class="input-label" for="prod-description">Descripción</label>
+                <textarea class="input-field" id="prod-description" placeholder="Descripción del producto..." rows="3"></textarea>
+              </div>
+            </div>
+            <div class="admin-form-row" style="display: flex; gap: var(--space-6); align-items: center;">
+              <label class="toggle">
+                <input type="checkbox" id="prod-featured">
+                <span class="toggle__track"></span>
+                <span class="toggle__label">Destacado</span>
+              </label>
+              <label class="toggle">
+                <input type="checkbox" id="prod-active" checked>
+                <span class="toggle__track"></span>
+                <span class="toggle__label">Activo</span>
+              </label>
+            </div>
+            <div class="admin-form-actions">
+              <button type="button" class="btn btn--tertiary" id="btn-cancel-form">Cancelar</button>
+              <button type="submit" class="btn btn--primary" id="btn-save-product">Guardar Producto</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Category Form Modal -->
+        <div class="modal-overlay" id="category-modal">
+          <div class="modal">
+            <h3 class="modal__title" id="category-modal-title">Nueva Categoría</h3>
+            <form id="category-form" style="text-align: left;">
+              <input type="hidden" id="cat-id">
+              <div class="input-group" style="margin-bottom: var(--space-4);">
+                <label class="input-label" for="cat-name">Nombre</label>
+                <input type="text" class="input-field" id="cat-name" placeholder="Ej: Bolsos" required>
+              </div>
+              <div class="input-group" style="margin-bottom: var(--space-6);">
+                <label class="input-label" for="cat-order">Orden</label>
+                <input type="number" class="input-field" id="cat-order" placeholder="1" min="0" value="0">
+              </div>
+              <div style="display: flex; gap: var(--space-3); justify-content: flex-end;">
+                <button type="button" class="btn btn--tertiary" id="btn-cancel-category">Cancelar</button>
+                <button type="submit" class="btn btn--primary">Guardar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Categories List -->
+        <div class="admin-table-wrapper" style="margin-bottom: var(--space-6);" id="categories-section">
+          <div class="admin-table-toolbar">
+            <h3 style="font-family: var(--font-display); font-size: var(--fs-headline-sm);">Categorías</h3>
+          </div>
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Orden</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="categories-tbody">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Products Table -->
+        <div class="admin-table-wrapper">
+          <div class="admin-table-toolbar">
+            <h3 style="font-family: var(--font-display); font-size: var(--fs-headline-sm);">Productos</h3>
+            <div class="search-input-wrapper" style="width: 250px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" class="input-field" id="inventory-search" placeholder="Buscar producto...">
+            </div>
+          </div>
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Categoría</th>
+                <th>Precio</th>
+                <th>Stock</th>
+                <th>Badge</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="products-tbody">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    // ── Import demo data from products.js ──
+    import { formatPrice } from '/js/config.js';
+
+    // Demo data (same as products.js)
+    let categories = [
+      { id: 'cat-1', nombre: 'Bolsos', orden: 1, activa: true },
+      { id: 'cat-2', nombre: 'Bandoleras', orden: 2, activa: true },
+      { id: 'cat-3', nombre: 'Riñoneras', orden: 3, activa: true },
+      { id: 'cat-4', nombre: 'Carteras', orden: 4, activa: true },
+      { id: 'cat-5', nombre: 'Morrales', orden: 5, activa: true },
+      { id: 'cat-6', nombre: 'Materos', orden: 6, activa: true },
+      { id: 'cat-7', nombre: 'Sobres', orden: 7, activa: true },
+      { id: 'cat-8', nombre: 'Cinturones', orden: 8, activa: true },
+      { id: 'cat-9', nombre: 'Billeteras', orden: 9, activa: true },
+    ];
+
+    let products = [
+      { id: 'prod-1', nombre: 'Bolso Weekend', precio: 85000, stock: 5, badge: 'nuevo', destacado: true, activo: true, imagen_url: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop', categoria_id: 'cat-1', descripcion: '' },
+      { id: 'prod-2', nombre: 'Bandolera Suede', precio: 45000, stock: 8, badge: 'limitado', destacado: true, activo: true, imagen_url: 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=400&h=400&fit=crop', categoria_id: 'cat-2', descripcion: '' },
+      { id: 'prod-3', nombre: 'Riñonera Urban Brown', precio: 32000, stock: 12, badge: '', destacado: false, activo: true, imagen_url: 'https://images.unsplash.com/photo-1594223274512-ad4803739b7c?w=400&h=400&fit=crop', categoria_id: 'cat-3', descripcion: '' },
+      { id: 'prod-4', nombre: 'Bolso XL Canvas', precio: 75000, stock: 3, badge: 'nuevo', destacado: true, activo: true, imagen_url: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop', categoria_id: 'cat-1', descripcion: '' },
+      { id: 'prod-5', nombre: 'Morral Nomad', precio: 62000, stock: 6, badge: '', destacado: false, activo: true, imagen_url: 'https://images.unsplash.com/photo-1622560480605-d83c853bc5c3?w=400&h=400&fit=crop', categoria_id: 'cat-5', descripcion: '' },
+      { id: 'prod-6', nombre: 'Matero Premium Cuero', precio: 58000, stock: 10, badge: 'best-seller', destacado: true, activo: true, imagen_url: 'https://images.unsplash.com/photo-1611078489935-0cb964de46d6?w=400&h=400&fit=crop', categoria_id: 'cat-6', descripcion: '' },
+      { id: 'prod-7', nombre: 'Cartera Minimal', precio: 92000, stock: 2, badge: '', destacado: false, activo: true, imagen_url: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400&h=400&fit=crop', categoria_id: 'cat-4', descripcion: '' },
+      { id: 'prod-8', nombre: 'Sobre de Gala', precio: 28000, stock: 15, badge: 'elegante', destacado: false, activo: true, imagen_url: 'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=400&h=400&fit=crop', categoria_id: 'cat-7', descripcion: '' },
+    ];
+
+    // Persist to localStorage
+    function saveData() {
+      localStorage.setItem('voko_categories', JSON.stringify(categories));
+      localStorage.setItem('voko_products', JSON.stringify(products));
+    }
+
+    function loadData() {
+      const storedCats = localStorage.getItem('voko_categories');
+      const storedProds = localStorage.getItem('voko_products');
+      if (storedCats) categories = JSON.parse(storedCats);
+      if (storedProds) products = JSON.parse(storedProds);
+    }
+
+    // ── Render Categories ──
+    function renderCategories() {
+      const tbody = document.getElementById('categories-tbody');
+      tbody.innerHTML = categories.map(cat => `
+        <tr>
+          <td><strong>${cat.nombre}</strong></td>
+          <td>${cat.orden}</td>
+          <td><span class="status-pill ${cat.activa ? 'status-pill--active' : 'status-pill--inactive'}">${cat.activa ? 'Activa' : 'Inactiva'}</span></td>
+          <td class="admin-table__actions">
+            <button class="admin-table__action-btn" onclick="editCategory('${cat.id}')" title="Editar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+            <button class="admin-table__action-btn admin-table__action-btn--delete" onclick="deleteCategory('${cat.id}')" title="Eliminar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+          </td>
+        </tr>
+      `).join('');
+
+      // Update category dropdown in form
+      const select = document.getElementById('prod-category');
+      select.innerHTML = '<option value="">Elegir categoría...</option>' +
+        categories.filter(c => c.activa).map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+    }
+
+    // ── Render Products ──
+    function renderProducts(filter = '') {
+      const tbody = document.getElementById('products-tbody');
+      const filtered = filter
+        ? products.filter(p => p.nombre.toLowerCase().includes(filter.toLowerCase()))
+        : products;
+
+      tbody.innerHTML = filtered.map(p => {
+        const cat = categories.find(c => c.id === p.categoria_id);
+        const stockClass = p.stock <= 3 ? 'admin-table__stock-low' : '';
+        const stockPill = p.stock <= 3 ? `<span class="status-pill status-pill--low-stock">Bajo</span>` : '';
+        return `
+        <tr>
+          <td>
+            <div class="admin-table__product-cell">
+              <img class="admin-table__product-img" src="${p.imagen_url || ''}" alt="${p.nombre}" loading="lazy">
+              <div>
+                <strong>${p.nombre}</strong>
+                ${p.destacado ? '<br><span style="font-size:11px;color:var(--color-tertiary);">⭐ Destacado</span>' : ''}
+              </div>
+            </div>
+          </td>
+          <td>${cat?.nombre || '—'}</td>
+          <td>${formatPrice(p.precio)}</td>
+          <td><span class="${stockClass}">${p.stock}</span> ${stockPill}</td>
+          <td>${p.badge ? `<span class="product-card__badge product-card__badge--${p.badge}" style="position:static;">${p.badge}</span>` : '—'}</td>
+          <td><span class="status-pill ${p.activo ? 'status-pill--active' : 'status-pill--inactive'}">${p.activo ? 'Activo' : 'Inactivo'}</span></td>
+          <td class="admin-table__actions">
+            <button class="admin-table__action-btn" onclick="editProduct('${p.id}')" title="Editar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+            <button class="admin-table__action-btn admin-table__action-btn--delete" onclick="deleteProduct('${p.id}')" title="Eliminar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    // ── Category CRUD ──
+    const categoryModal = document.getElementById('category-modal');
+
+    window.editCategory = (id) => {
+      const cat = categories.find(c => c.id === id);
+      if (!cat) return;
+      document.getElementById('cat-id').value = cat.id;
+      document.getElementById('cat-name').value = cat.nombre;
+      document.getElementById('cat-order').value = cat.orden;
+      document.getElementById('category-modal-title').textContent = 'Editar Categoría';
+      categoryModal.classList.add('open');
+    };
+
+    window.deleteCategory = (id) => {
+      if (!confirm('¿Eliminar esta categoría?')) return;
+      categories = categories.filter(c => c.id !== id);
+      saveData();
+      renderCategories();
+      renderProducts();
+    };
+
+    document.getElementById('btn-new-category').addEventListener('click', () => {
+      document.getElementById('category-form').reset();
+      document.getElementById('cat-id').value = '';
+      document.getElementById('category-modal-title').textContent = 'Nueva Categoría';
+      categoryModal.classList.add('open');
+    });
+
+    document.getElementById('btn-cancel-category').addEventListener('click', () => {
+      categoryModal.classList.remove('open');
+    });
+
+    document.getElementById('category-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const id = document.getElementById('cat-id').value;
+      const nombre = document.getElementById('cat-name').value;
+      const orden = parseInt(document.getElementById('cat-order').value) || 0;
+
+      if (id) {
+        const cat = categories.find(c => c.id === id);
+        if (cat) { cat.nombre = nombre; cat.orden = orden; }
+      } else {
+        categories.push({ id: 'cat-' + Date.now(), nombre, orden, activa: true });
+      }
+      saveData();
+      renderCategories();
+      categoryModal.classList.remove('open');
+    });
+
+    // ── Product CRUD ──
+    const formCard = document.getElementById('product-form-card');
+
+    document.getElementById('btn-new-product').addEventListener('click', () => {
+      document.getElementById('product-form').reset();
+      document.getElementById('product-id').value = '';
+      document.getElementById('prod-active').checked = true;
+      document.getElementById('form-title').textContent = 'Nuevo Producto';
+      formCard.style.display = 'block';
+      formCard.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    document.getElementById('btn-cancel-form').addEventListener('click', () => {
+      formCard.style.display = 'none';
+    });
+
+    window.editProduct = (id) => {
+      const p = products.find(pr => pr.id === id);
+      if (!p) return;
+      document.getElementById('product-id').value = p.id;
+      document.getElementById('prod-name').value = p.nombre;
+      document.getElementById('prod-category').value = p.categoria_id;
+      document.getElementById('prod-price').value = p.precio;
+      document.getElementById('prod-stock').value = p.stock;
+      document.getElementById('prod-badge').value = p.badge || '';
+      document.getElementById('prod-image').value = p.imagen_url || '';
+      document.getElementById('prod-description').value = p.descripcion || '';
+      document.getElementById('prod-featured').checked = p.destacado;
+      document.getElementById('prod-active').checked = p.activo;
+      document.getElementById('form-title').textContent = 'Editar Producto';
+      formCard.style.display = 'block';
+      formCard.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    window.deleteProduct = (id) => {
+      if (!confirm('¿Eliminar este producto?')) return;
+      products = products.filter(p => p.id !== id);
+      saveData();
+      renderProducts();
+    };
+
+    document.getElementById('product-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const id = document.getElementById('product-id').value;
+      const productData = {
+        nombre: document.getElementById('prod-name').value,
+        categoria_id: document.getElementById('prod-category').value,
+        precio: parseFloat(document.getElementById('prod-price').value),
+        stock: parseInt(document.getElementById('prod-stock').value),
+        badge: document.getElementById('prod-badge').value || null,
+        imagen_url: document.getElementById('prod-image').value || '',
+        descripcion: document.getElementById('prod-description').value || '',
+        destacado: document.getElementById('prod-featured').checked,
+        activo: document.getElementById('prod-active').checked,
+      };
+
+      if (id) {
+        const idx = products.findIndex(p => p.id === id);
+        if (idx >= 0) products[idx] = { ...products[idx], ...productData };
+      } else {
+        products.push({ id: 'prod-' + Date.now(), ...productData });
+      }
+
+      saveData();
+      renderProducts();
+      formCard.style.display = 'none';
+    });
+
+    // ── Search ──
+    document.getElementById('inventory-search').addEventListener('input', (e) => {
+      renderProducts(e.target.value);
+    });
+
+    // ── Sidebar Toggle ──
+    const sidebar = document.getElementById('admin-sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    document.getElementById('sidebar-toggle').addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('open');
+    });
+    overlay.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('open');
+    });
+
+    // ── Init ──
+    loadData();
+    renderCategories();
+    renderProducts();
+  </script>
+</body>
+</html>
