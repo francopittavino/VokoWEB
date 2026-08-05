@@ -326,15 +326,15 @@
       categoryModal.classList.add('open');
     });
 
+    document.getElementById('btn-cancel-category').addEventListener('click', () => {
+      categoryModal.classList.remove('open');
+    });
+
     // ── Supabase Integration ──
     function isSupabaseReady() {
       const url = import.meta.env?.VITE_SUPABASE_URL || '';
       return url && !url.includes('TU-PROYECTO') && url.startsWith('http');
     }
-
-    document.getElementById('btn-cancel-category').addEventListener('click', () => {
-      categoryModal.classList.remove('open');
-    });
 
     // ── Category Form Submit ──
     document.getElementById('category-form').addEventListener('submit', async (e) => {
@@ -358,7 +358,6 @@
         }
       }
 
-      // Local fallback sync
       if (id) {
         const cat = categories.find(c => c.id === id);
         if (cat) { cat.nombre = nombre; cat.orden = orden; }
@@ -385,6 +384,77 @@
       saveData();
       renderCategories();
       renderProducts();
+    };
+
+    // ── Product CRUD & Image Handler ──
+    const formCard = document.getElementById('product-form-card');
+    const fileInput = document.getElementById('prod-image-file');
+    const imageHidden = document.getElementById('prod-image');
+    const imageText = document.getElementById('prod-image-text');
+    const previewContainer = document.getElementById('prod-image-preview-container');
+    const previewImg = document.getElementById('prod-image-preview');
+
+    if (fileInput) {
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          imageText.textContent = `📷 ${file.name}`;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            imageHidden.value = ev.target.result;
+            previewImg.src = ev.target.result;
+            previewContainer.style.display = 'block';
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+
+    function resetImagePreview(url = '') {
+      if (!imageHidden || !previewImg || !previewContainer || !imageText) return;
+      imageHidden.value = url;
+      if (fileInput) fileInput.value = '';
+      if (url) {
+        previewImg.src = url;
+        previewContainer.style.display = 'block';
+        imageText.textContent = '📷 Cambiar foto';
+      } else {
+        previewImg.src = '';
+        previewContainer.style.display = 'none';
+        imageText.textContent = '📷 Toca aquí para elegir foto';
+      }
+    }
+
+    document.getElementById('btn-new-product')?.addEventListener('click', () => {
+      document.getElementById('product-form').reset();
+      document.getElementById('product-id').value = '';
+      document.getElementById('prod-active').checked = true;
+      resetImagePreview('');
+      document.getElementById('form-title').textContent = 'Nuevo Producto';
+      formCard.style.display = 'block';
+      formCard.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    document.getElementById('btn-cancel-form')?.addEventListener('click', () => {
+      formCard.style.display = 'none';
+    });
+
+    window.editProduct = (id) => {
+      const p = products.find(pr => pr.id === id);
+      if (!p) return;
+      document.getElementById('product-id').value = p.id;
+      document.getElementById('prod-name').value = p.nombre;
+      document.getElementById('prod-category').value = p.categoria_id;
+      document.getElementById('prod-price').value = p.precio;
+      document.getElementById('prod-stock').value = p.stock;
+      document.getElementById('prod-badge').value = p.badge || '';
+      resetImagePreview(p.imagen_url || '');
+      document.getElementById('prod-description').value = p.descripcion || '';
+      document.getElementById('prod-featured').checked = p.destacado;
+      document.getElementById('prod-active').checked = p.activo;
+      document.getElementById('form-title').textContent = 'Editar Producto';
+      formCard.style.display = 'block';
+      formCard.scrollIntoView({ behavior: 'smooth' });
     };
 
     // ── Product Form Submit ──
