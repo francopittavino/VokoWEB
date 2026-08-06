@@ -41,6 +41,9 @@
         <button class="admin-topbar__hamburger" id="sidebar-toggle"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
         <h1 class="admin-topbar__title">Inventario</h1>
         <div class="admin-topbar__actions">
+          <button class="btn btn--secondary btn--sm" id="btn-mass-upload" title="Subir múltiples fotos de Instagram a la vez">
+            📷 Carga Masiva
+          </button>
           <button class="btn btn--primary btn--sm" id="btn-new-category">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
             Nueva Categoría
@@ -191,6 +194,55 @@
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mass Image Upload Modal -->
+  <div class="modal-overlay" id="mass-upload-modal">
+    <div class="modal" style="max-width: 580px; text-align: left;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4);">
+        <h3 class="modal__title" style="margin: 0;">📷 Carga Masiva de Fotos de Instagram</h3>
+        <button type="button" id="btn-close-mass-modal" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--color-on-surface-variant);">&times;</button>
+      </div>
+
+      <p style="font-size: var(--fs-body-sm); color: var(--color-on-surface-variant); margin-bottom: var(--space-4);">
+        Seleccioná o arrastrá todas las fotos de tus bolsos descargadas de Instagram o sacadas con tu celular. Se creará un producto borrador automáticamente por cada foto para que luego puedas editarles el nombre y precio.
+      </p>
+
+      <div style="margin-bottom: var(--space-4);">
+        <label class="image-upload" for="mass-images-file" style="padding: var(--space-6); text-align: center; border: 2px dashed var(--color-primary); border-radius: var(--radius-md); cursor: pointer; display: block; background: var(--color-surface-container-low);">
+          <div style="font-size: 28px; margin-bottom: var(--space-2);">📂</div>
+          <strong style="color: var(--color-primary);">Tocá aquí para seleccionar múltiples fotos</strong>
+          <div style="font-size: 12px; color: var(--color-on-surface-variant); margin-top: 4px;">(Podés elegir 5, 10, 20 fotos juntas)</div>
+          <input type="file" id="mass-images-file" accept="image/*" multiple style="display: none;">
+        </label>
+      </div>
+
+      <div class="admin-form-row" style="margin-bottom: var(--space-4);">
+        <div class="input-group">
+          <label class="input-label" for="mass-category">Categoría por Defecto</label>
+          <select class="input-field" id="mass-category">
+            <option value="">Elegir categoría...</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label class="input-label" for="mass-price">Precio Inicial Estimado ($)</label>
+          <input type="number" class="input-field" id="mass-price" value="50000" min="0">
+        </div>
+      </div>
+
+      <!-- Preview Selected Files Grid -->
+      <div id="mass-preview-container" style="display: none; margin-bottom: var(--space-5);">
+        <label class="input-label" id="mass-preview-count">Vista previa de fotos seleccionadas (0):</label>
+        <div id="mass-preview-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; max-height: 160px; overflow-y: auto; padding: 6px; background: var(--color-surface-container); border-radius: var(--radius-sm);"></div>
+      </div>
+
+      <div style="display: flex; gap: var(--space-3); justify-content: flex-end;">
+        <button type="button" class="btn btn--tertiary" id="btn-cancel-mass-modal">Cancelar</button>
+        <button type="button" class="btn btn--primary" id="btn-confirm-mass-upload" disabled>
+          Crear Productos Borradores
+        </button>
       </div>
     </div>
   </div>

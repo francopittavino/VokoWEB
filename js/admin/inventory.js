@@ -49,10 +49,12 @@ function renderCategories() {
   `).join('');
 
   const select = document.getElementById('prod-category');
-  if (select) {
-    select.innerHTML = '<option value="">Elegir categoría...</option>' +
-      categories.filter(c => c.activa).map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
-  }
+  const massSelect = document.getElementById('mass-category');
+  const catOptions = '<option value="">Elegir categoría...</option>' +
+    categories.filter(c => c.activa).map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+
+  if (select) select.innerHTML = catOptions;
+  if (massSelect) massSelect.innerHTML = catOptions;
 }
 
 window.toggleProductActive = async (id, isActive) => {
@@ -423,6 +425,124 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('voko_products_updated', () => {
     products = getLocalProducts();
     renderProducts(document.getElementById('inventory-search')?.value || '');
+  });
+
+  // ── Mass Upload Modal Logic ──
+  const massModal = document.getElementById('mass-upload-modal');
+  const btnMassUpload = document.getElementById('btn-mass-upload');
+  const btnCloseMass = document.getElementById('btn-close-mass-modal');
+  const btnCancelMass = document.getElementById('btn-cancel-mass-modal');
+  const massFileInput = document.getElementById('mass-images-file');
+  const massConfirmBtn = document.getElementById('btn-confirm-mass-upload');
+  const massPreviewContainer = document.getElementById('mass-preview-container');
+  const massPreviewGrid = document.getElementById('mass-preview-grid');
+  const massPreviewCount = document.getElementById('mass-preview-count');
+
+  let selectedMassFiles = [];
+
+  function openMassModal() {
+    selectedMassFiles = [];
+    if (massFileInput) massFileInput.value = '';
+    if (massPreviewContainer) massPreviewContainer.style.display = 'none';
+    if (massPreviewGrid) massPreviewGrid.innerHTML = '';
+    if (massConfirmBtn) {
+      massConfirmBtn.disabled = true;
+      massConfirmBtn.textContent = 'Crear Productos Borradores';
+    }
+    massModal?.classList.add('open');
+  }
+
+  function closeMassModal() {
+    massModal?.classList.remove('open');
+    selectedMassFiles = [];
+  }
+
+  btnMassUpload?.addEventListener('click', openMassModal);
+  btnCloseMass?.addEventListener('click', closeMassModal);
+  btnCancelMass?.addEventListener('click', closeMassModal);
+  massModal?.addEventListener('click', (e) => {
+    if (e.target === massModal) closeMassModal();
+  });
+
+  massFileInput?.addEventListener('change', (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    selectedMassFiles = files;
+
+    if (massPreviewGrid && massPreviewCount && massPreviewContainer) {
+      massPreviewGrid.innerHTML = '';
+      massPreviewCount.textContent = `Vista previa de fotos seleccionadas (${files.length}):`;
+
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const img = document.createElement('img');
+          img.src = ev.target.result;
+          img.style.width = '100%';
+          img.style.height = '70px';
+          img.style.objectFit = 'cover';
+          img.style.borderRadius = 'var(--radius-xs)';
+          massPreviewGrid.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      });
+
+      massPreviewContainer.style.display = 'block';
+    }
+
+    if (massConfirmBtn) {
+      massConfirmBtn.disabled = false;
+      massConfirmBtn.textContent = `Crear ${files.length} Productos Borradores`;
+    }
+  });
+
+  massConfirmBtn?.addEventListener('click', async () => {
+    if (selectedMassFiles.length === 0) return;
+
+    massConfirmBtn.disabled = true;
+    massConfirmBtn.textContent = 'Procesando fotos...';
+
+    const defaultCat = document.getElementById('mass-category')?.value || (categories[0]?.id || 'cat-1');
+    const defaultPrice = parseFloat(document.getElementById('mass-price')?.value) || 50000;
+
+    let createdCount = 0;
+
+    for (let i = 0; i < selectedMassFiles.length; i++) {
+      const file = selectedMassFiles[i];
+      const dataUrl = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => resolve(ev.target.result);
+        reader.readAsDataURL(file);
+      });
+
+      let rawName = file.name ? file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ') : '';
+      if (!rawName || rawName.length > 30) {
+        rawName = `Bolso Borrador #${products.length + 1}`;
+      } else {
+        rawName = rawName.replace(/\b\w/g, c => c.toUpperCase());
+      }
+
+      const newProduct = {
+        id: 'prod-' + Date.now() + '-' + i,
+        nombre: rawName,
+        precio: defaultPrice,
+        badge: 'nuevo',
+        destacado: false,
+        activo: true,
+        categoria_id: defaultCat,
+        imagen_url: dataUrl,
+        descripcion: 'Producto borrador importado desde fotos.'
+      };
+
+      products.unshift(newProduct);
+      createdCount++;
+    }
+
+    saveData();
+    renderProducts();
+    closeMassModal();
+
+    alert(`¡Éxito! Se crearon ${createdCount} productos borradores con las fotos seleccionadas. Podés hacer clic en ✏️ Editar en cualquier fila para ajustar el título y precio.`);
   });
 
   renderCategories();
