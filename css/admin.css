@@ -384,6 +384,60 @@
   height: 16px;
 }
 
+/* Quick Stock Picker Widget */
+.inventory-stock-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--color-surface-container-high);
+  padding: 4px 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-outline-variant);
+}
+
+.inventory-stock-btn {
+  background-color: var(--color-surface-container);
+  border: 1px solid var(--color-outline-variant);
+  color: #ffffff;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.inventory-stock-btn:hover {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+  transform: scale(1.05);
+}
+
+.inventory-stock-btn:active {
+  transform: scale(0.95);
+}
+
+.inventory-stock-val {
+  min-width: 24px;
+  text-align: center;
+  font-weight: bold;
+  font-size: var(--fs-body-md);
+  color: #ffffff;
+}
+
+.inventory-stock-val--zero {
+  color: #ff5252;
+}
+
+.inventory-stock-val--low {
+  color: #ffd740;
+}
+
 /* Responsive table */
 @media (max-width: 767px) {
   .admin-table-wrapper {

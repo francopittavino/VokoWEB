@@ -62,6 +62,28 @@ function renderCategories() {
   }
 }
 
+window.quickUpdateStock = async (id, delta) => {
+  const p = products.find(pr => pr.id === id);
+  if (!p) return;
+
+  const newStock = Math.max(0, (p.stock || 0) + delta);
+  p.stock = newStock;
+
+  if (isSupabaseReady()) {
+    try {
+      const { updateProduct } = await import('/js/supabase.js');
+      if (!id.startsWith('prod-')) {
+        await updateProduct(id, { stock: newStock });
+      }
+    } catch (e) {
+      console.warn('Could not update stock in Supabase, saving locally:', e);
+    }
+  }
+
+  saveData();
+  renderProducts(document.getElementById('inventory-search')?.value || '');
+};
+
 function renderProducts(filter = '') {
   const tbody = document.getElementById('products-tbody');
   if (!tbody) return;
@@ -71,8 +93,11 @@ function renderProducts(filter = '') {
 
   tbody.innerHTML = filtered.map(p => {
     const cat = categories.find(c => c.id === p.categoria_id);
-    const stockClass = p.stock <= 3 ? 'admin-table__stock-low' : '';
-    const stockPill = p.stock <= 3 ? `<span class="status-pill status-pill--low-stock">Bajo</span>` : '';
+    const stockValClass = p.stock === 0 ? 'inventory-stock-val--zero' : (p.stock <= 3 ? 'inventory-stock-val--low' : '');
+    const stockPill = p.stock === 0 
+      ? `<span class="status-pill status-pill--inactive" style="background: rgba(211,47,47,0.2); color: #ff5252; border-color: #ff5252;">Agotado</span>` 
+      : (p.stock <= 3 ? `<span class="status-pill status-pill--low-stock">Bajo</span>` : '');
+
     return `
     <tr>
       <td>
@@ -86,7 +111,14 @@ function renderProducts(filter = '') {
       </td>
       <td>${cat?.nombre || '—'}</td>
       <td>${formatPrice(p.precio)}</td>
-      <td><span class="${stockClass}">${p.stock}</span> ${stockPill}</td>
+      <td>
+        <div class="inventory-stock-picker">
+          <button class="inventory-stock-btn" onclick="quickUpdateStock('${p.id}', -1)" title="Disminuir stock">−</button>
+          <span class="inventory-stock-val ${stockValClass}">${p.stock}</span>
+          <button class="inventory-stock-btn" onclick="quickUpdateStock('${p.id}', 1)" title="Aumentar stock">+</button>
+          ${stockPill}
+        </div>
+      </td>
       <td>${p.badge ? `<span class="product-card__badge product-card__badge--${p.badge}" style="position:static;">${p.badge}</span>` : '—'}</td>
       <td><span class="status-pill ${p.activo ? 'status-pill--active' : 'status-pill--inactive'}">${p.activo ? 'Activo' : 'Inactivo'}</span></td>
       <td class="admin-table__actions">
