@@ -27,7 +27,11 @@ export function getLocalProducts() {
 }
 
 export function saveLocalProducts(products) {
-  localStorage.setItem('voko_products', JSON.stringify(products));
+  try {
+    localStorage.setItem('voko_products', JSON.stringify(products));
+  } catch (e) {
+    console.error('Error al guardar productos en localStorage (exceso de cuota):', e);
+  }
   // Dispatch custom event so current window reacts instantly as well
   window.dispatchEvent(new CustomEvent('voko_products_updated', { detail: products }));
 }

@@ -21,6 +21,16 @@ function loadData() {
     try { categories = JSON.parse(storedCats); } catch {}
   }
   products = getLocalProducts();
+
+  // Self-heal heavy uncompressed images if any exist in storage
+  products.forEach(p => {
+    if (p.imagen_url && p.imagen_url.length > 200000 && p.imagen_url.startsWith('data:image')) {
+      compressImage(p.imagen_url, 450, 0.7).then(compressed => {
+        p.imagen_url = compressed;
+        saveData();
+      });
+    }
+  });
 }
 
 function saveData() {
@@ -222,6 +232,37 @@ function resetImagePreview(url = '') {
   }
 }
 
+function compressImage(dataUrl, maxDimension = 450, quality = 0.7) {
+  return new Promise((resolve) => {
+    if (!dataUrl || !dataUrl.startsWith('data:image')) {
+      resolve(dataUrl);
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      let width = img.width;
+      let height = img.height;
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = Math.round((height * maxDimension) / width);
+          width = maxDimension;
+        } else {
+          width = Math.round((width * maxDimension) / height);
+          height = maxDimension;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   const categoryModal = document.getElementById('category-modal');
   const formCard = document.getElementById('product-form-card');
@@ -233,9 +274,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (file) {
         document.getElementById('prod-image-text').textContent = `📷 ${file.name}`;
         const reader = new FileReader();
-        reader.onload = (ev) => {
-          document.getElementById('prod-image').value = ev.target.result;
-          document.getElementById('prod-image-preview').src = ev.target.result;
+        reader.onload = async (ev) => {
+          const compressed = await compressImage(ev.target.result, 450, 0.7);
+          document.getElementById('prod-image').value = compressed;
+          document.getElementById('prod-image-preview').src = compressed;
           document.getElementById('prod-image-preview-container').style.display = 'block';
         };
         reader.readAsDataURL(file);
@@ -509,11 +551,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     for (let i = 0; i < selectedMassFiles.length; i++) {
       const file = selectedMassFiles[i];
-      const dataUrl = await new Promise((resolve) => {
+      const rawDataUrl = await new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = (ev) => resolve(ev.target.result);
         reader.readAsDataURL(file);
       });
+
+      // Compress image to ~25KB JPEG so it never hits localStorage limits
+      const compressedDataUrl = await compressImage(rawDataUrl, 450, 0.7);
 
       let rawName = file.name ? file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ') : '';
       if (!rawName || rawName.length > 30) {
@@ -530,7 +575,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         destacado: false,
         activo: true,
         categoria_id: defaultCat,
-        imagen_url: dataUrl,
+        imagen_url: compressedDataUrl,
         descripcion: 'Producto borrador importado desde fotos.'
       };
 
