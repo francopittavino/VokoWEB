@@ -55,21 +55,20 @@ function renderCategories() {
   }
 }
 
-window.quickUpdateStock = async (id, delta) => {
+window.toggleProductActive = async (id, isActive) => {
   const p = products.find(pr => pr.id === id);
   if (!p) return;
 
-  const newStock = Math.max(0, (p.stock || 0) + delta);
-  p.stock = newStock;
+  p.activo = isActive;
 
   if (isSupabaseReady()) {
     try {
       const { updateProduct } = await import('/js/supabase.js');
       if (!id.startsWith('prod-')) {
-        await updateProduct(id, { stock: newStock });
+        await updateProduct(id, { activo: isActive });
       }
     } catch (e) {
-      console.warn('Could not update stock in Supabase, saving locally:', e);
+      console.warn('Could not update active status in Supabase:', e);
     }
   }
 
@@ -86,10 +85,7 @@ function renderProducts(filter = '') {
 
   tbody.innerHTML = filtered.map(p => {
     const cat = categories.find(c => c.id === p.categoria_id);
-    const stockValClass = p.stock === 0 ? 'inventory-stock-val--zero' : (p.stock <= 3 ? 'inventory-stock-val--low' : '');
-    const stockPill = p.stock === 0 
-      ? `<span class="status-pill status-pill--inactive" style="background: rgba(211,47,47,0.2); color: #ff5252; border-color: #ff5252;">Agotado</span>` 
-      : (p.stock <= 3 ? `<span class="status-pill status-pill--low-stock">Bajo</span>` : '');
+    const isActive = p.activo !== false;
 
     return `
     <tr>
@@ -104,16 +100,18 @@ function renderProducts(filter = '') {
       </td>
       <td>${cat?.nombre || '—'}</td>
       <td>${formatPrice(p.precio)}</td>
+      <td>${p.badge ? `<span class="product-card__badge product-card__badge--${p.badge}" style="position:static;">${p.badge}</span>` : '—'}</td>
       <td>
-        <div class="inventory-stock-picker">
-          <button class="inventory-stock-btn" onclick="quickUpdateStock('${p.id}', -1)" title="Disminuir stock">−</button>
-          <span class="inventory-stock-val ${stockValClass}">${p.stock}</span>
-          <button class="inventory-stock-btn" onclick="quickUpdateStock('${p.id}', 1)" title="Aumentar stock">+</button>
-          ${stockPill}
+        <div style="display: inline-flex; align-items: center; gap: 8px;">
+          <label class="toggle" style="margin: 0; cursor: pointer;">
+            <input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleProductActive('${p.id}', this.checked)">
+            <span class="toggle__track"></span>
+          </label>
+          <span class="status-pill ${isActive ? 'status-pill--active' : 'status-pill--inactive'}">
+            ${isActive ? '🟢 Visible' : '⚪ Oculto'}
+          </span>
         </div>
       </td>
-      <td>${p.badge ? `<span class="product-card__badge product-card__badge--${p.badge}" style="position:static;">${p.badge}</span>` : '—'}</td>
-      <td><span class="status-pill ${p.activo ? 'status-pill--active' : 'status-pill--inactive'}">${p.activo ? 'Activo' : 'Inactivo'}</span></td>
       <td class="admin-table__actions">
         <button class="admin-table__action-btn" onclick="editProduct('${p.id}')" title="Editar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
         <button class="admin-table__action-btn admin-table__action-btn--delete" onclick="deleteProduct('${p.id}')" title="Eliminar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
@@ -165,7 +163,6 @@ window.editProduct = (id) => {
   document.getElementById('prod-name').value = p.nombre;
   document.getElementById('prod-category').value = p.categoria_id;
   document.getElementById('prod-price').value = p.precio;
-  document.getElementById('prod-stock').value = p.stock;
   document.getElementById('prod-badge').value = p.badge || '';
   resetImagePreview(p.imagen_url || '');
   document.getElementById('prod-description').value = p.descripcion || '';
@@ -339,7 +336,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       nombre: document.getElementById('prod-name').value,
       categoria_id: document.getElementById('prod-category').value,
       precio: parseFloat(document.getElementById('prod-price').value),
-      stock: parseInt(document.getElementById('prod-stock').value),
       badge: document.getElementById('prod-badge').value || null,
       imagen_url: imageUrl,
       descripcion: document.getElementById('prod-description').value || '',

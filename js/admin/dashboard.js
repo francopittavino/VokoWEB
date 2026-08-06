@@ -148,8 +148,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     let salesHistory = getLocalSales();
     const orders = JSON.parse(localStorage.getItem('voko_orders') || '[]');
 
+    let activeCount = 0;
+
     if (products.length > 0) {
       totalProducts = products.length;
+      activeCount = products.filter(p => p.activo !== false).length;
       lowStockCount = products.filter(p => p.stock <= 3).length;
     }
 
@@ -170,7 +173,6 @@ document.addEventListener('DOMContentLoaded', async () => {
           totalProducts = stats.totalProducts || totalProducts;
           salesToday = stats.salesToday || salesToday;
           ordersCount = stats.salesCount || ordersCount;
-          lowStockCount = stats.lowStockCount || lowStockCount;
         }
       }
     } catch {
@@ -178,9 +180,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Render Stats
-    if (document.getElementById('stat-products')) document.getElementById('stat-products').textContent = totalProducts;
-    if (document.getElementById('stat-sales-today')) document.getElementById('stat-sales-today').textContent = formatPrice(salesToday);
-    if (document.getElementById('stat-orders')) document.getElementById('stat-orders').textContent = ordersCount;
+    const elProducts = document.getElementById('stat-products');
+    const elSales = document.getElementById('stat-sales-today');
+    const elOrders = document.getElementById('stat-orders');
+    const elLowStock = document.getElementById('stat-low-stock');
+
+    if (elProducts) elProducts.textContent = totalProducts;
+    if (elSales) elSales.textContent = formatPrice(salesToday);
+    if (elOrders) elOrders.textContent = ordersCount;
+    if (elLowStock) elLowStock.textContent = activeCount;
     if (document.getElementById('stat-low-stock')) document.getElementById('stat-low-stock').textContent = lowStockCount;
 
     // Render Recent Sales Table with Accordion Dropdowns & Delete Action

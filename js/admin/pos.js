@@ -37,7 +37,7 @@ function populateProducts(filterText = '') {
   // Always re-read fresh products from storage
   products = getLocalProducts();
 
-  const activeProducts = products.filter(p => p.activo !== false && p.stock > 0);
+  const activeProducts = products.filter(p => p.activo !== false);
   const filtered = activeProducts.filter(p => 
     p.nombre.toLowerCase().includes(filterText.toLowerCase().trim())
   );
@@ -50,16 +50,12 @@ function populateProducts(filterText = '') {
   }
 
   grid.innerHTML = filtered.map(p => {
-    const isLowStock = p.stock <= 3;
     const imgUrl = getProductImg(p);
     return `
       <div class="pos-product-card" data-product-id="${p.id}">
         <img src="${imgUrl}" alt="${p.nombre}" class="pos-product-card__img" onerror="this.src='https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop'">
         <div class="pos-product-card__name">${p.nombre}</div>
         <div class="pos-product-card__price">${formatPrice(p.precio)}</div>
-        <div class="pos-product-card__stock ${isLowStock ? 'pos-product-card__stock--low' : ''}">
-          ${isLowStock ? '⚠ ' : ''}Stock: ${p.stock} un.
-        </div>
       </div>
     `;
   }).join('');
@@ -78,13 +74,6 @@ function addToSale(prodId) {
   if (!product) return;
 
   const existing = currentSale.find(i => i.id === prodId);
-  const currentQty = existing ? existing.cantidad : 0;
-
-  if (currentQty + 1 > product.stock) {
-    alert(`Stock insuficiente. Solo quedan ${product.stock} unidades de "${product.nombre}".`);
-    return;
-  }
-
   const imgUrl = getProductImg(product);
 
   if (existing) {
@@ -152,12 +141,6 @@ function renderSaleItems() {
 window.updateItemQty = (idx, delta) => {
   const item = currentSale[idx];
   if (!item) return;
-  const product = products.find(p => p.id === item.id);
-
-  if (delta > 0 && product && item.cantidad + 1 > product.stock) {
-    alert(`Solo quedan ${product.stock} unidades de ${product.nombre}`);
-    return;
-  }
 
   item.cantidad += delta;
   if (item.cantidad <= 0) {
@@ -217,9 +200,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       total += item.precio * item.cantidad;
     });
 
-    // Re-read fresh products from localStorage to ensure up-to-date stock
-    products = getLocalProducts();
-
     if (isSupabaseReady()) {
       try {
         const { createSale } = await import('/js/supabase.js');
@@ -232,23 +212,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             precio_unitario: item.precio,
           })),
         });
-        const { getAllProducts } = await import('/js/supabase.js');
-        products = await getAllProducts();
-        saveLocalProducts(products);
       } catch (e) {
-        console.warn('POS: Supabase sale save failed, saving locally:', e);
-        currentSale.forEach(item => {
-          const p = products.find(pr => pr.id === item.id || pr.nombre === item.nombre);
-          if (p) p.stock = Math.max(0, (p.stock || 0) - item.cantidad);
-        });
-        saveLocalProducts(products);
+        console.warn('POS: Supabase sale save failed:', e);
       }
-    } else {
-      currentSale.forEach(item => {
-        const p = products.find(pr => pr.id === item.id || pr.nombre === item.nombre);
-        if (p) p.stock = Math.max(0, (p.stock || 0) - item.cantidad);
-      });
-      saveLocalProducts(products);
     }
 
     salesHistory.unshift({

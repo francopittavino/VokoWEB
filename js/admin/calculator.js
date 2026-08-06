@@ -1,4 +1,5 @@
 import { formatPrice, SUPABASE_URL } from '/js/config.js';
+import { getLocalProducts, saveLocalProducts } from './storage-helper.js';
 
 function isSupabaseReady() {
   return SUPABASE_URL && !SUPABASE_URL.includes('TU-PROYECTO') && SUPABASE_URL.startsWith('http');
@@ -46,7 +47,6 @@ document.addEventListener('DOMContentLoaded', () => {
         await createProduct({
           nombre: name,
           precio: finalPrice,
-          stock: 1,
           badge: 'nuevo',
           destacado: false,
           activo: true,
@@ -61,19 +61,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Local fallback
-    let products = JSON.parse(localStorage.getItem('voko_products') || '[]');
+    let products = getLocalProducts();
     products.push({
       id: 'prod-' + Date.now(),
       nombre: name,
       precio: finalPrice,
-      stock: 1,
       badge: 'nuevo',
       destacado: false,
       activo: true,
       categoria_id: 'cat-1',
       imagen_url: ''
     });
-    localStorage.setItem('voko_products', JSON.stringify(products));
+    saveLocalProducts(products);
     alert(`¡Producto "${name}" guardado con éxito en el inventario a ${formatPrice(finalPrice)}!`);
     location.href = '/admin/inventario.html';
   });
