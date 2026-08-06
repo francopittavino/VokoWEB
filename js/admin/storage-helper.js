@@ -16,10 +16,10 @@ export const INITIAL_DEMO_PRODUCTS = [
 
 export function getLocalProducts() {
   const stored = localStorage.getItem('voko_products');
-  if (stored) {
+  if (stored !== null) {
     try {
       const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     } catch (e) {}
   }
   localStorage.setItem('voko_products', JSON.stringify(INITIAL_DEMO_PRODUCTS));

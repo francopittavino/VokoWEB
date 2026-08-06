@@ -44,10 +44,10 @@ const DEFAULT_COST_SHEETS = [
 
 function getCostSheets() {
   const stored = localStorage.getItem('voko_product_costs');
-  if (stored) {
+  if (stored !== null) {
     try {
       const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     } catch (e) {}
   }
   localStorage.setItem('voko_product_costs', JSON.stringify(DEFAULT_COST_SHEETS));
