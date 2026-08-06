@@ -20,7 +20,7 @@ export default defineConfig({
         adminDashboard: resolve(__dirname, 'admin/dashboard.html'),
         adminInventario: resolve(__dirname, 'admin/inventario.html'),
         adminPos: resolve(__dirname, 'admin/pos.html'),
-        adminCalculadora: resolve(__dirname, 'admin/calculadora.html'),
+        adminCostos: resolve(__dirname, 'admin/costos.html'),
         adminPedidos: resolve(__dirname, 'admin/pedidos.html'),
       },
     },
