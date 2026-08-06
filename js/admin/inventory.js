@@ -21,16 +21,6 @@ function loadData() {
     try { categories = JSON.parse(storedCats); } catch {}
   }
   products = getLocalProducts();
-
-  // Self-heal heavy uncompressed images if any exist in storage
-  products.forEach(p => {
-    if (p.imagen_url && p.imagen_url.length > 200000 && p.imagen_url.startsWith('data:image')) {
-      compressImage(p.imagen_url, 450, 0.7).then(compressed => {
-        p.imagen_url = compressed;
-        saveData();
-      });
-    }
-  });
 }
 
 function saveData() {
@@ -68,7 +58,8 @@ function renderCategories() {
 }
 
 window.toggleProductActive = async (id, isActive) => {
-  const p = products.find(pr => pr.id === id);
+  products = getLocalProducts();
+  const p = products.find(pr => String(pr.id) === String(id));
   if (!p) return;
 
   p.activo = isActive;
@@ -205,10 +196,12 @@ window.deleteProduct = async (id) => {
       console.warn('Could not delete product in Supabase, falling back to local:', e);
     }
   }
-  // Local-only fallback
-  products = products.filter(p => p.id !== id);
-  saveData();
-  renderProducts();
+  // Local-only fallback with strict string comparison
+  let freshList = getLocalProducts();
+  freshList = freshList.filter(p => String(p.id) !== String(id));
+  products = freshList;
+  saveLocalProducts(products);
+  renderProducts(document.getElementById('inventory-search')?.value || '');
 };
 
 function resetImagePreview(url = '') {
