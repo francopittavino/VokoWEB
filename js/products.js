@@ -323,9 +323,6 @@ export function openProductPreviewModal(product) {
             <button class="btn btn--primary btn--full" id="modal-add-cart">
               🛒 Agregar al Carrito
             </button>
-            <button class="btn btn--whatsapp btn--full" id="modal-ask-wa">
-              💬 Consultar por WhatsApp
-            </button>
           </div>
         </div>
       </div>
@@ -365,13 +362,6 @@ export function openProductPreviewModal(product) {
   overlay.querySelector('#modal-add-cart')?.addEventListener('click', () => {
     addToCart(product, qty);
     closeModal();
-  });
-
-  // WhatsApp ask
-  overlay.querySelector('#modal-ask-wa')?.addEventListener('click', () => {
-    const eSparkles = String.fromCodePoint(0x2728);
-    const msg = `${eSparkles} *Consulta por ${name}* — ${formatPrice(price)}\nHola! Quería consultar disponibilidad del accesorio *${name}*.`;
-    window.open(getWhatsAppLink(msg), '_blank');
   });
 
   // Interactive Magnification Zoom on Image Move / Click
