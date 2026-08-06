@@ -242,6 +242,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       total += item.precio * item.cantidad;
     });
 
+    // Re-read fresh products from localStorage to ensure up-to-date stock
+    products = getStoredProducts();
+
     if (isSupabaseReady()) {
       try {
         const { createSale } = await import('/js/supabase.js');
@@ -260,15 +263,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       } catch (e) {
         console.warn('POS: Supabase sale save failed, saving locally:', e);
         currentSale.forEach(item => {
-          const p = products.find(pr => pr.id === item.id);
-          if (p) p.stock = Math.max(0, p.stock - item.cantidad);
+          const p = products.find(pr => pr.id === item.id || pr.nombre === item.nombre);
+          if (p) p.stock = Math.max(0, (p.stock || 0) - item.cantidad);
         });
         localStorage.setItem('voko_products', JSON.stringify(products));
       }
     } else {
       currentSale.forEach(item => {
-        const p = products.find(pr => pr.id === item.id);
-        if (p) p.stock = Math.max(0, p.stock - item.cantidad);
+        const p = products.find(pr => pr.id === item.id || pr.nombre === item.nombre);
+        if (p) p.stock = Math.max(0, (p.stock || 0) - item.cantidad);
       });
       localStorage.setItem('voko_products', JSON.stringify(products));
     }

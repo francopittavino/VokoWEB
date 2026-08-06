@@ -12,7 +12,7 @@ let categories = [
   { id: 'cat-9', nombre: 'Billeteras', orden: 9, activa: true },
 ];
 
-let products = [
+const DEFAULT_PRODUCTS = [
   { id: 'prod-1', nombre: 'Bolso Weekend', precio: 85000, stock: 5, badge: 'nuevo', destacado: true, activo: true, imagen_url: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop', categoria_id: 'cat-1', descripcion: '' },
   { id: 'prod-2', nombre: 'Bandolera Suede', precio: 45000, stock: 8, badge: 'limitado', destacado: true, activo: true, imagen_url: 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=400&h=400&fit=crop', categoria_id: 'cat-2', descripcion: '' },
   { id: 'prod-3', nombre: 'Riñonera Urban Brown', precio: 32000, stock: 12, badge: '', destacado: false, activo: true, imagen_url: 'https://images.unsplash.com/photo-1594223274512-ad4803739b7c?w=400&h=400&fit=crop', categoria_id: 'cat-3', descripcion: '' },
@@ -23,16 +23,33 @@ let products = [
   { id: 'prod-8', nombre: 'Sobre de Gala', precio: 28000, stock: 15, badge: 'elegante', destacado: false, activo: true, imagen_url: 'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=400&h=400&fit=crop', categoria_id: 'cat-7', descripcion: '' },
 ];
 
-function saveData() {
-  localStorage.setItem('voko_categories', JSON.stringify(categories));
-  localStorage.setItem('voko_products', JSON.stringify(products));
-}
+let products = [];
 
 function loadData() {
   const storedCats = localStorage.getItem('voko_categories');
   const storedProds = localStorage.getItem('voko_products');
-  if (storedCats) categories = JSON.parse(storedCats);
-  if (storedProds) products = JSON.parse(storedProds);
+  if (storedCats) {
+    try { categories = JSON.parse(storedCats); } catch {}
+  }
+  if (storedProds) {
+    try {
+      const parsed = JSON.parse(storedProds);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        products = parsed;
+        return;
+      }
+    } catch {}
+  }
+  products = [...DEFAULT_PRODUCTS];
+  localStorage.setItem('voko_products', JSON.stringify(products));
+}
+
+// Load data immediately on module evaluation
+loadData();
+
+function saveData() {
+  localStorage.setItem('voko_categories', JSON.stringify(categories));
+  localStorage.setItem('voko_products', JSON.stringify(products));
 }
 
 // Uses the imported SUPABASE_URL from config.js (which reads env vars correctly)

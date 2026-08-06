@@ -98,11 +98,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       ? currentSaleToDelete.items 
       : (products.length > 0 ? [{ id: products[0].id, cantidad: currentSaleToDelete.itemsCount || 1 }] : []);
 
-    // Restore stock for each sold item
     itemsToRestore.forEach(item => {
-      const p = products.find(prod => prod.id === item.id || prod.nombre === item.nombre);
+      const itemId = item.id || item.producto_id;
+      const itemName = (item.nombre || item.name || '').toLowerCase().trim();
+      const p = products.find(prod => 
+        (itemId && prod.id === itemId) || 
+        (itemName && prod.nombre.toLowerCase().trim() === itemName)
+      );
       if (p) {
-        p.stock = (p.stock || 0) + (item.cantidad || 1);
+        const qty = parseInt(item.cantidad) || 1;
+        p.stock = (p.stock || 0) + qty;
       }
     });
 
