@@ -18,13 +18,9 @@
     <!-- Sidebar -->
     <aside class="admin-sidebar" id="admin-sidebar">
       <div class="admin-sidebar__header">
-        <div class="admin-sidebar__logo">
-          <div class="admin-sidebar__logo-icon">V</div>
-          <div>
-            <div class="admin-sidebar__logo-text">Voko Accesorios</div>
-            <div class="admin-sidebar__logo-subtitle">Admin Panel</div>
-          </div>
-        </div>
+        <a href="/admin/dashboard.html" class="admin-sidebar__logo" title="Ir al Dashboard">
+          <img src="/images/voko_logo.svg" alt="Voko Accesorios" class="admin-sidebar__logo-svg">
+        </a>
       </div>
       <nav class="admin-sidebar__nav">
         <a href="/admin/dashboard.html" class="admin-nav-item active">
@@ -130,6 +126,43 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Eliminar Venta -->
+  <div class="modal-overlay" id="delete-sale-modal">
+    <div class="modal" style="max-width: 480px; text-align: left;">
+      <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+        <div style="width: 44px; height: 44px; border-radius: var(--radius-full); background: var(--color-error-container); color: var(--color-error); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        </div>
+        <div>
+          <h3 class="modal__title" style="margin: 0; font-size: var(--fs-title-lg);">Eliminar Venta</h3>
+          <span style="font-size: 13px; color: var(--color-on-surface-variant);" id="modal-sale-id-label">ID: sale-123</span>
+        </div>
+      </div>
+
+      <p class="modal__text" style="margin-bottom: var(--space-4); line-height: 1.5; color: var(--color-on-surface);">
+        ¿Estás seguro de que deseas eliminar este registro de venta? <br>
+        <strong>¿Deseás devolver los artículos al stock de productos?</strong>
+      </p>
+
+      <div style="background: var(--color-surface-container-low); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); border: 1px solid var(--color-outline-variant); margin-bottom: var(--space-6);">
+        <div style="font-size: 11px; font-weight: bold; text-transform: uppercase; color: var(--color-primary); margin-bottom: 4px; letter-spacing: 0.5px;">Items a restaurar si se confirma:</div>
+        <div id="modal-sale-items-preview" style="font-size: 13px; color: var(--color-on-surface); line-height: 1.4;"></div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+        <button class="btn btn--primary" id="btn-restore-and-delete" style="justify-content: center; background-color: var(--color-primary);">
+          🔄 Sí, restaurar stock y eliminar venta
+        </button>
+        <button class="btn btn--secondary" id="btn-only-delete" style="justify-content: center;">
+          🗑️ No restaurar stock, solo eliminar venta
+        </button>
+        <button class="btn btn--tertiary" id="btn-cancel-delete" style="justify-content: center; margin-top: 2px;">
+          Cancelar
+        </button>
       </div>
     </div>
   </div>

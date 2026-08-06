@@ -53,9 +53,27 @@
       <div class="custom-order-section">
         <div class="custom-order-form reveal">
           <form id="custom-order-form">
+            <!-- Name -->
+            <div class="input-group" style="margin-bottom: var(--space-4);">
+              <label class="input-label" for="order-name">Nombre y Apellido *</label>
+              <input type="text" class="input-field" id="order-name" placeholder="Ej: María Peralta" required>
+            </div>
+
+            <!-- Phone -->
+            <div class="input-group" style="margin-bottom: var(--space-4);">
+              <label class="input-label" for="order-phone">Teléfono / WhatsApp de Contacto *</label>
+              <input type="tel" class="input-field" id="order-phone" placeholder="Ej: 343 412 3456" required>
+            </div>
+
+            <!-- Deadline (Optional Date Picker) -->
+            <div class="input-group" style="margin-bottom: var(--space-4);">
+              <label class="input-label" for="order-deadline">Fecha Límite / Entrega Deseada (Opcional)</label>
+              <input type="date" class="input-field" id="order-deadline">
+            </div>
+
             <!-- Title -->
             <div class="input-group" style="margin-bottom: var(--space-4);">
-              <label class="input-label" for="order-title">Producto o Accesorio a Medida</label>
+              <label class="input-label" for="order-title">Producto o Accesorio a Medida *</label>
               <input type="text" class="input-field" id="order-title" placeholder="Ej: Bolso matero en cuerina suela / Riñonera borravino" required>
             </div>
 
@@ -67,7 +85,7 @@
 
             <!-- Description -->
             <div class="input-group" style="margin-bottom: var(--space-6);">
-              <label class="input-label" for="order-description">Descripción / Detalles del diseño</label>
+              <label class="input-label" for="order-description">Descripción / Detalles del diseño *</label>
               <textarea class="input-field" id="order-description" placeholder="Especificá colores, tonos de cuerina, herrajes, medidas aproximadas o cualquier detalle especial..." rows="5" required></textarea>
             </div>
 
@@ -131,17 +149,6 @@
             <p class="process-step__text">Trabajamos a mano con los mejores materiales premium.</p>
           </div>
         </div>
-        <div class="process-step">
-          <div class="process-step__icon">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
-            </svg>
-          </div>
-          <div>
-            <h3 class="process-step__title">Entrega</h3>
-            <p class="process-step__text">Recibí tu pieza única en la puerta de tu casa.</p>
-          </div>
-        </div>
       </div>
     </section>
 
@@ -162,10 +169,7 @@
           <a href="#" class="footer__link">Regalos</a>
         </div>
         <div>
-          <h3 class="footer__section-title">Servicio</h3>
-          <a href="#" class="footer__link">Guía de Tallas</a>
-          <a href="#" class="footer__link">Envíos</a>
-          <a href="#" class="footer__link">Términos de Servicio</a>
+          <a href="/nosotros#contacto" class="btn btn--primary btn--sm" style="margin-top: var(--space-4);">Contactarnos</a>
         </div>
         <div>
           <h3 class="footer__section-title">Conectar</h3>
@@ -195,18 +199,45 @@
     import '/js/cart.js';
     import { getWhatsAppLink } from '/js/config.js';
 
+    // Restrict deadline calendar picker to future dates (from tomorrow onwards)
+    const deadlineInput = document.getElementById('order-deadline');
+    if (deadlineInput) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const year = tomorrow.getFullYear();
+      const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+      const day = String(tomorrow.getDate()).padStart(2, '0');
+      deadlineInput.min = `${year}-${month}-${day}`;
+    }
+
     // Form submit → WhatsApp + Save to Local Orders
     document.getElementById('custom-order-form')?.addEventListener('submit', (e) => {
       e.preventDefault();
+      const name = document.getElementById('order-name').value.trim();
+      const phone = document.getElementById('order-phone').value.trim();
+      const rawDeadline = document.getElementById('order-deadline').value;
       const title = document.getElementById('order-title').value.trim();
       const qty = parseInt(document.getElementById('order-qty').value) || 1;
       const description = document.getElementById('order-description').value.trim();
+
+      // Format deadline date cleanly (e.g. 2026-10-15 -> 15/10/2026)
+      let formattedDeadline = null;
+      if (rawDeadline) {
+        const parts = rawDeadline.split('-');
+        if (parts.length === 3) {
+          formattedDeadline = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        } else {
+          formattedDeadline = rawDeadline;
+        }
+      }
 
       // Persist to local orders for Admin panel tracking
       let orders = JSON.parse(localStorage.getItem('voko_orders') || '[]');
       const newOrder = {
         id: 'order-' + Date.now(),
-        cliente: 'Cliente Web',
+        cliente: name,
+        telefono: phone,
+        fechaLimite: formattedDeadline,
         tipo: 'Encargo a Medida',
         detalle: `[${qty}x ${title}] - ${description}`,
         hasImage: false,
@@ -218,18 +249,26 @@
 
       // Build WhatsApp structured message with Unicode-safe code points
       const eSparkles = String.fromCodePoint(0x2728);
+      const eUser = String.fromCodePoint(0x1F464);
+      const ePhone = String.fromCodePoint(0x1F4DE);
+      const eCalendar = String.fromCodePoint(0x1F4C5);
       const ePin = String.fromCodePoint(0x1F4CC);
       const eNum = String.fromCodePoint(0x1F522);
       const eMemo = String.fromCodePoint(0x1F4DD);
       const eCamera = String.fromCodePoint(0x1F4F8);
       const eSmile = String.fromCodePoint(0x1F60A);
 
-      let message = `${eSparkles} *PEDIDO A MEDIDA — VOKO ACCESORIOS* ${eSparkles}\n\n`;
-      message += `${ePin} *Producto / Idea:* ${title}\n`;
+      let message = `${eSparkles} *NUEVO PEDIDO A MEDIDA — VOKO ACCESORIOS* ${eSparkles}\n\n`;
+      message += `${eUser} *Nombre:* ${name}\n`;
+      message += `${ePhone} *Teléfono de contacto:* ${phone}\n`;
+      if (formattedDeadline) {
+        message += `${eCalendar} *Fecha Límite / Entrega:* ${formattedDeadline}\n`;
+      }
+      message += `\n${ePin} *Producto / Idea:* ${title}\n`;
       message += `${eNum} *Cantidad:* ${qty} unidad${qty > 1 ? 'es' : ''}\n\n`;
       message += `${eMemo} *Descripción / Detalles:* \n${description}\n\n`;
       message += `${eCamera} *(Si tenés una foto de referencia, podés adjuntarla a continuación en este chat)*\n\n`;
-      message += `¡Gracias! Espero su respuesta ${eSmile}`;
+      message += `¡Gracias! Espero su confirmación ${eSmile}`;
 
       window.open(getWhatsAppLink(message), '_blank');
     });

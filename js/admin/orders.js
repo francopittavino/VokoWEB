@@ -76,15 +76,23 @@ function renderOrders(filterText = '') {
     return;
   }
 
-  tbody.innerHTML = filtered.map((o) => `
+  tbody.innerHTML = filtered.map((o) => {
+    const cleanPhone = o.telefono ? o.telefono.replace(/[^0-9]/g, '') : '';
+    const waPhone = cleanPhone.length >= 8 ? (cleanPhone.startsWith('54') ? cleanPhone : '549' + cleanPhone) : '';
+
+    return `
     <tr>
-      <td><strong>${o.cliente}</strong></td>
+      <td>
+        <strong>${o.cliente}</strong>
+        ${o.telefono ? `<br><a href="${waPhone ? 'https://wa.me/' + waPhone : '#'}" target="_blank" style="font-size:12px; color:var(--color-success); font-weight:600; text-decoration:none;">📞 ${o.telefono}</a>` : ''}
+        ${o.fechaLimite ? `<br><span style="font-size:11px; background:var(--color-surface-container-high); color:var(--color-tertiary); padding:2px 6px; border-radius:4px; font-weight:bold; display:inline-block; margin-top:3px;">📅 Límite: ${o.fechaLimite}</span>` : ''}
+      </td>
       <td>
         <span style="font-size:12px; font-weight:600; padding:2px 8px; border-radius:12px; background:var(--color-surface-container-high); color:var(--color-primary);">
           ${o.tipo}
         </span>
       </td>
-      <td style="max-width: 300px; white-space: normal; line-height: 1.4;">
+      <td style="max-width: 320px; white-space: normal; line-height: 1.4;">
         ${o.detalle}
         ${o.hasImage ? '<br><span style="font-size:11px; color:var(--color-tertiary);">📸 Incluye imagen de referencia</span>' : ''}
       </td>
@@ -100,7 +108,8 @@ function renderOrders(filterText = '') {
         <button class="admin-table__action-btn admin-table__action-btn--delete" onclick="deleteOrder('${o.id}')" title="Eliminar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 window.updateOrderStatus = (id, newStatus) => {

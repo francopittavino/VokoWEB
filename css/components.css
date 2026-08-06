@@ -12,17 +12,18 @@
   left: 0;
   right: 0;
   height: var(--nav-height);
-  background-color: var(--color-surface);
-  border-bottom: 1px solid var(--color-outline-variant);
+  background-color: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   z-index: var(--z-nav);
-  transition: box-shadow var(--transition-base), background-color var(--transition-base);
+  transition: box-shadow var(--transition-base), background-color var(--transition-base), border-color var(--transition-base);
 }
 
 .navbar.scrolled {
   box-shadow: var(--shadow-nav);
-  background-color: rgba(255, 249, 239, 0.95);
+  background-color: rgba(102, 83, 71, 0.92);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-outline-variant);
 }
 
 .navbar__inner {
@@ -51,21 +52,26 @@
   display: inline-flex;
   align-items: center;
   text-decoration: none;
-  color: var(--color-primary);
   line-height: 1;
   user-select: none;
   white-space: nowrap;
-  transition: transform var(--transition-fast), opacity var(--transition-fast);
+  transition: transform var(--transition-fast);
 }
 
 .navbar__logo-svg {
-  height: 38px;
+  height: 52px;
   width: auto;
-  max-width: 140px;
-  color: var(--color-primary);
-  fill: currentColor;
+  max-width: 180px;
+  color: #3a281c;
+  fill: #3a281c;
   display: block;
-  transition: transform var(--transition-fast);
+  transition: transform var(--transition-fast), color var(--transition-fast), fill var(--transition-fast);
+}
+
+.navbar.scrolled .navbar__logo-svg {
+  color: #ffffff;
+  fill: #ffffff;
+  filter: brightness(0) invert(1);
 }
 
 .navbar__logo:hover .navbar__logo-svg {
@@ -87,11 +93,15 @@
 .navbar__link {
   font-family: var(--font-body);
   font-size: var(--fs-body-md);
-  font-weight: var(--fw-medium);
-  color: var(--color-on-surface-variant);
+  font-weight: var(--fw-semibold);
+  color: #2e1f16;
   position: relative;
   padding-block: var(--space-2);
   transition: color var(--transition-fast);
+}
+
+.navbar.scrolled .navbar__link {
+  color: #ffffff;
 }
 
 .navbar__link::after {
@@ -109,6 +119,11 @@
 
 .navbar__link:hover,
 .navbar__link.active {
+  color: var(--color-primary);
+}
+
+.navbar.scrolled .navbar__link:hover,
+.navbar.scrolled .navbar__link.active {
   color: var(--color-primary);
 }
 
@@ -131,12 +146,16 @@
   width: 40px;
   height: 40px;
   border-radius: var(--radius-full);
-  color: var(--color-on-surface-variant);
+  color: #2e1f16;
   transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
+.navbar.scrolled .navbar__icon-btn {
+  color: #ffffff;
+}
+
 .navbar__icon-btn:hover {
-  background-color: var(--color-surface-container);
+  background-color: rgba(255, 255, 255, 0.2);
   color: var(--color-primary);
 }
 
@@ -1075,7 +1094,7 @@ select.input-field {
 
 @media (min-width: 768px) {
   .process-steps {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   }
 }
 

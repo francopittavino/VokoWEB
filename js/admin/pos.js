@@ -4,15 +4,106 @@ function isSupabaseReady() {
   return SUPABASE_URL && !SUPABASE_URL.includes('TU-PROYECTO') && SUPABASE_URL.startsWith('http');
 }
 
+const DEMO_IMAGES = {
+  'prod-1': 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop',
+  'prod-2': 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=400&h=400&fit=crop',
+  'prod-3': 'https://images.unsplash.com/photo-1594223274512-ad4803739b7c?w=400&h=400&fit=crop',
+  'prod-4': 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop',
+  'prod-5': 'https://images.unsplash.com/photo-1622560480605-d83c853bc5c3?w=400&h=400&fit=crop',
+  'prod-6': 'https://images.unsplash.com/photo-1611078489935-0cb964de46d6?w=400&h=400&fit=crop',
+  'prod-7': 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400&h=400&fit=crop',
+  'prod-8': 'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=400&h=400&fit=crop',
+};
+
+function getProductImg(p) {
+  if (p.imagen_url && p.imagen_url.startsWith('http')) return p.imagen_url;
+  if (p.imagen && p.imagen.startsWith('http')) return p.imagen;
+  if (p.id && DEMO_IMAGES[p.id]) return DEMO_IMAGES[p.id];
+  return 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop';
+}
+
 let products = JSON.parse(localStorage.getItem('voko_products') || '[]');
 let currentSale = [];
 let salesHistory = JSON.parse(localStorage.getItem('voko_sales_history') || '[]');
 
-function populateProducts() {
-  const select = document.getElementById('pos-product-select');
-  if (!select) return;
-  select.innerHTML = '<option value="">Seleccionar producto...</option>' +
-    products.filter(p => p.activo && p.stock > 0).map(p => `<option value="${p.id}">${p.nombre} (${formatPrice(p.precio)}) — Stock: ${p.stock}</option>`).join('');
+// Heal any product image fields in localStorage
+products = products.map(p => {
+  const validImg = getProductImg(p);
+  return { ...p, imagen_url: validImg, imagen: validImg };
+});
+localStorage.setItem('voko_products', JSON.stringify(products));
+
+/**
+ * Render visual grid of product cards with photos
+ */
+function populateProducts(filterText = '') {
+  const grid = document.getElementById('pos-products-grid');
+  if (!grid) return;
+
+  const activeProducts = products.filter(p => p.activo !== false && p.stock > 0);
+  const filtered = activeProducts.filter(p => 
+    p.nombre.toLowerCase().includes(filterText.toLowerCase().trim())
+  );
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div style="grid-column: 1 / -1; padding: var(--space-6); text-align: center; color: var(--color-on-surface-variant);">
+      No se encontraron productos disponibles ${filterText ? 'para "' + filterText + '"' : ''}.
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(p => {
+    const isLowStock = p.stock <= 3;
+    const imgUrl = getProductImg(p);
+    return `
+      <div class="pos-product-card" data-product-id="${p.id}">
+        <img src="${imgUrl}" alt="${p.nombre}" class="pos-product-card__img" onerror="this.src='https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop'">
+        <div class="pos-product-card__name">${p.nombre}</div>
+        <div class="pos-product-card__price">${formatPrice(p.precio)}</div>
+        <div class="pos-product-card__stock ${isLowStock ? 'pos-product-card__stock--low' : ''}">
+          ${isLowStock ? '⚠ ' : ''}Stock: ${p.stock} un.
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Attach click listener to each product card
+  grid.querySelectorAll('.pos-product-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const prodId = card.getAttribute('data-product-id');
+      addToSale(prodId);
+    });
+  });
+}
+
+function addToSale(prodId) {
+  const product = products.find(p => p.id === prodId);
+  if (!product) return;
+
+  const existing = currentSale.find(i => i.id === prodId);
+  const currentQty = existing ? existing.cantidad : 0;
+
+  if (currentQty + 1 > product.stock) {
+    alert(`Stock insuficiente. Solo quedan ${product.stock} unidades de "${product.nombre}".`);
+    return;
+  }
+
+  const imgUrl = getProductImg(product);
+
+  if (existing) {
+    existing.cantidad += 1;
+  } else {
+    currentSale.push({
+      id: product.id,
+      nombre: product.nombre,
+      precio: product.precio,
+      imagen: imgUrl,
+      imagen_url: imgUrl,
+      cantidad: 1
+    });
+  }
+
+  renderSaleItems();
 }
 
 function renderSaleItems() {
@@ -20,7 +111,7 @@ function renderSaleItems() {
   if (!tbody) return;
 
   if (currentSale.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--color-on-surface-variant);">No hay productos en la venta actual</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--color-on-surface-variant); padding: var(--space-6);">No hay productos agregados a la venta</td></tr>`;
     document.getElementById('pos-subtotal').textContent = '$0';
     document.getElementById('pos-total').textContent = '$0';
     const confirmBtn = document.getElementById('pos-confirm-btn');
@@ -32,13 +123,25 @@ function renderSaleItems() {
   tbody.innerHTML = currentSale.map((item, idx) => {
     const sub = item.precio * item.cantidad;
     total += sub;
+    const imgUrl = getProductImg(item);
     return `
       <tr>
-        <td><strong>${item.nombre}</strong></td>
-        <td>${item.cantidad}</td>
+        <td>
+          <div style="display:flex; align-items:center; gap:var(--space-3);">
+            <img src="${imgUrl}" alt="${item.nombre}" style="width:40px; height:40px; border-radius:var(--radius-sm); object-fit:cover; background:var(--color-surface-container);" onerror="this.src='https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop'">
+            <strong>${item.nombre}</strong>
+          </div>
+        </td>
+        <td>
+          <div style="display:flex; align-items:center; gap:4px;">
+            <button class="btn btn--sm btn--tertiary" style="padding: 2px 8px;" onclick="updateItemQty(${idx}, -1)">-</button>
+            <span style="font-weight: bold; min-width: 20px; text-align: center;">${item.cantidad}</span>
+            <button class="btn btn--sm btn--tertiary" style="padding: 2px 8px;" onclick="updateItemQty(${idx}, 1)">+</button>
+          </div>
+        </td>
         <td>${formatPrice(item.precio)}</td>
         <td><strong>${formatPrice(sub)}</strong></td>
-        <td><button class="admin-table__action-btn admin-table__action-btn--delete" onclick="removeItem(${idx})">✕</button></td>
+        <td><button class="admin-table__action-btn admin-table__action-btn--delete" onclick="removeItem(${idx})" title="Eliminar item">✕</button></td>
       </tr>
     `;
   }).join('');
@@ -48,6 +151,23 @@ function renderSaleItems() {
   const confirmBtn = document.getElementById('pos-confirm-btn');
   if (confirmBtn) confirmBtn.disabled = false;
 }
+
+window.updateItemQty = (idx, delta) => {
+  const item = currentSale[idx];
+  if (!item) return;
+  const product = products.find(p => p.id === item.id);
+
+  if (delta > 0 && product && item.cantidad + 1 > product.stock) {
+    alert(`Solo quedan ${product.stock} unidades de ${product.nombre}`);
+    return;
+  }
+
+  item.cantidad += delta;
+  if (item.cantidad <= 0) {
+    currentSale.splice(idx, 1);
+  }
+  renderSaleItems();
+};
 
 window.removeItem = (idx) => {
   currentSale.splice(idx, 1);
@@ -85,29 +205,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  document.getElementById('pos-add-btn')?.addEventListener('click', () => {
-    const prodId = document.getElementById('pos-product-select').value;
-    const qty = parseInt(document.getElementById('pos-qty').value) || 1;
-    if (!prodId) return;
-
-    const product = products.find(p => p.id === prodId);
-    if (!product) return;
-
-    if (qty > product.stock) {
-      alert(`Stock insuficiente. Solo quedan ${product.stock} unidades de ${product.nombre}`);
-      return;
-    }
-
-    const existing = currentSale.find(i => i.id === prodId);
-    if (existing) {
-      existing.cantidad += qty;
-    } else {
-      currentSale.push({ id: product.id, nombre: product.nombre, precio: product.precio, cantidad: qty });
-    }
-
-    renderSaleItems();
+  // Live search listener
+  const searchInput = document.getElementById('pos-search-input');
+  searchInput?.addEventListener('input', (e) => {
+    populateProducts(e.target.value);
   });
 
+  // Confirm sale button
   document.getElementById('pos-confirm-btn')?.addEventListener('click', async () => {
     if (currentSale.length === 0) return;
 
@@ -116,7 +220,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       total += item.precio * item.cantidad;
     });
 
-    // Try to save to Supabase first
     if (isSupabaseReady()) {
       try {
         const { createSale } = await import('/js/supabase.js');
@@ -129,13 +232,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             precio_unitario: item.precio,
           })),
         });
-        // Reload products from Supabase (stock was updated server-side)
         const { getAllProducts } = await import('/js/supabase.js');
         products = await getAllProducts();
         localStorage.setItem('voko_products', JSON.stringify(products));
       } catch (e) {
         console.warn('POS: Supabase sale save failed, saving locally:', e);
-        // Fallback: update stock locally
         currentSale.forEach(item => {
           const p = products.find(pr => pr.id === item.id);
           if (p) p.stock = Math.max(0, p.stock - item.cantidad);
@@ -143,7 +244,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         localStorage.setItem('voko_products', JSON.stringify(products));
       }
     } else {
-      // Local-only: update stock locally
       currentSale.forEach(item => {
         const p = products.find(pr => pr.id === item.id);
         if (p) p.stock = Math.max(0, p.stock - item.cantidad);
@@ -153,15 +253,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     salesHistory.unshift({
       id: 'sale-' + Date.now(),
-      fecha: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+      fecha: new Date().toLocaleDateString('es-AR') + ' ' + new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
       total,
-      itemsCount: currentSale.reduce((acc, i) => acc + i.cantidad, 0)
+      itemsCount: currentSale.reduce((acc, i) => acc + i.cantidad, 0),
+      items: currentSale.map(item => ({
+        id: item.id,
+        nombre: item.nombre,
+        precio: item.precio,
+        imagen: getProductImg(item),
+        imagen_url: getProductImg(item),
+        cantidad: item.cantidad
+      }))
     });
     localStorage.setItem('voko_sales_history', JSON.stringify(salesHistory));
 
     alert('¡Venta registrada con éxito! El stock ha sido actualizado.');
     currentSale = [];
-    populateProducts();
+    populateProducts(searchInput?.value || '');
     renderSaleItems();
     renderHistory();
   });

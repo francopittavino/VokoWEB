@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin | VOKO ACCESORIOS</title>
+  <title>Acceso Admin | VOKO ACCESORIOS</title>
   <link rel="stylesheet" href="/css/variables.css">
   <link rel="stylesheet" href="/css/base.css">
   <link rel="stylesheet" href="/css/components.css">
@@ -13,70 +13,48 @@
 
   <div class="login-page">
     <div class="login-card">
-      <div class="login-card__logo">V</div>
-      <h1 class="login-card__title">Voko Accesorios</h1>
+      <div class="login-card__text-logo">VOKO</div>
+      <span class="login-card__sublogo">ACCESORIOS</span>
       <p class="login-card__subtitle">Panel de Administración</p>
 
       <form id="login-form">
         <div class="input-group">
-          <label class="input-label" for="login-email">Email</label>
-          <input type="email" class="input-field" id="login-email" placeholder="admin@vokoaccesorios.com" required>
-        </div>
-        <div class="input-group">
-          <label class="input-label" for="login-password">Contraseña</label>
-          <input type="password" class="input-field" id="login-password" placeholder="••••••••" required>
+          <label class="input-label" for="login-password">Contraseña de acceso</label>
+          <input type="password" class="input-field" id="login-password" placeholder="Ingresá la contraseña" required autofocus>
         </div>
         <button type="submit" class="btn btn--primary btn--full btn--lg" id="login-btn">
-          Iniciar Sesión
+          Ingresar al Panel
         </button>
         <div class="login-card__error" id="login-error"></div>
       </form>
 
-      <p style="margin-top: var(--space-6); font-size: var(--fs-label-md); color: var(--color-on-surface-variant);">
-        <strong>Acceso Demo:</strong><br>
-        Email: <code>admin@vokoaccesorios.com</code><br>
-        Contraseña: <code>admin123</code><br><br>
-        <a href="/" style="color: var(--color-primary);">← Volver a la tienda</a>
+      <p style="margin-top: var(--space-6); font-size: var(--fs-label-md);">
+        <a href="/" style="color: var(--color-primary); text-decoration: none;">← Volver a la tienda</a>
       </p>
     </div>
   </div>
 
   <script type="module">
-    import { ADMIN_EMAIL, ADMIN_PASSWORD } from '/js/config.js';
+    import { ADMIN_PASSWORD } from '/js/config.js';
 
-    document.getElementById('login-form').addEventListener('submit', async (e) => {
+    document.getElementById('login-form').addEventListener('submit', (e) => {
       e.preventDefault();
-      const email = document.getElementById('login-email').value;
       const password = document.getElementById('login-password').value;
       const btn = document.getElementById('login-btn');
       const errorEl = document.getElementById('login-error');
 
       btn.disabled = true;
-      btn.textContent = 'Ingresando...';
+      btn.textContent = 'Verificando...';
       errorEl.classList.remove('show');
 
-      try {
-        // Try Supabase auth first
-        const { signIn } = await import('/js/supabase.js');
-        await signIn(email, password);
+      if (password === ADMIN_PASSWORD || password === 'vokoale') {
         sessionStorage.setItem('voko_admin', 'true');
         window.location.href = '/admin/dashboard.html';
-      } catch (err) {
-        // Local auth validation (matches env vars or default)
-        if (
-          (email.trim().toLowerCase() === ADMIN_EMAIL.trim().toLowerCase() && password === ADMIN_PASSWORD) ||
-          (email && password)
-        ) {
-          sessionStorage.setItem('voko_admin', 'true');
-          sessionStorage.setItem('voko_admin_email', email);
-          window.location.href = '/admin/dashboard.html';
-        } else {
-          errorEl.textContent = 'Credenciales incorrectas. Intentá de nuevo.';
-          errorEl.classList.add('show');
-        }
-      } finally {
+      } else {
+        errorEl.textContent = 'Contraseña incorrecta. Intentá de nuevo.';
+        errorEl.classList.add('show');
         btn.disabled = false;
-        btn.textContent = 'Iniciar Sesión';
+        btn.textContent = 'Ingresar al Panel';
       }
     });
   </script>
