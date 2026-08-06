@@ -5,7 +5,7 @@
    ============================================ */
 
 import { getProducts, getCategories } from './supabase.js';
-import { formatPrice } from './config.js';
+import { formatPrice, SUPABASE_URL } from './config.js';
 import { addToCart } from './cart.js';
 
 // ──────────────────────────────────────────
@@ -92,8 +92,7 @@ let currentFilters = {
 // CHECK IF SUPABASE IS CONFIGURED
 // ──────────────────────────────────────────
 function isSupabaseReady() {
-  const url = import.meta.env?.VITE_SUPABASE_URL || '';
-  return url && !url.includes('TU-PROYECTO') && url.startsWith('http');
+  return SUPABASE_URL && !SUPABASE_URL.includes('TU-PROYECTO') && SUPABASE_URL.startsWith('http');
 }
 
 // ──────────────────────────────────────────
@@ -101,7 +100,18 @@ function isSupabaseReady() {
 // ──────────────────────────────────────────
 
 export async function loadProducts(filters = {}) {
-  // Check localStorage first (reflects Admin Panel creations instantly)
+  // If Supabase is configured, always try cloud first for fresh data
+  if (isSupabaseReady()) {
+    try {
+      allProducts = await getProducts(filters);
+      localStorage.setItem('voko_products', JSON.stringify(allProducts));
+      return filterProducts(allProducts);
+    } catch (e) {
+      console.warn('Could not connect to Supabase, trying local cache.', e);
+    }
+  }
+
+  // Fallback: check localStorage (reflects Admin Panel creations)
   const stored = localStorage.getItem('voko_products');
   if (stored) {
     try {
@@ -112,24 +122,25 @@ export async function loadProducts(filters = {}) {
     }
   }
 
-  // If Supabase is real & configured, fetch from cloud
-  if (isSupabaseReady()) {
-    try {
-      allProducts = await getProducts(filters);
-      localStorage.setItem('voko_products', JSON.stringify(allProducts));
-      return allProducts;
-    } catch (e) {
-      console.warn('Could not connect to Supabase, using local data.', e);
-    }
-  }
-
-  // Instant fallback to demo products
+  // Last resort: demo products
   allProducts = [...DEMO_PRODUCTS];
   localStorage.setItem('voko_products', JSON.stringify(allProducts));
   return allProducts;
 }
 
 export async function loadCategories() {
+  // If Supabase is configured, always try cloud first for fresh data
+  if (isSupabaseReady()) {
+    try {
+      allCategories = await getCategories();
+      localStorage.setItem('voko_categories', JSON.stringify(allCategories));
+      return allCategories;
+    } catch (e) {
+      console.warn('Could not load categories from Supabase, trying local cache.', e);
+    }
+  }
+
+  // Fallback: check localStorage
   const stored = localStorage.getItem('voko_categories');
   if (stored) {
     try {
@@ -138,14 +149,7 @@ export async function loadCategories() {
     } catch {}
   }
 
-  if (isSupabaseReady()) {
-    try {
-      allCategories = await getCategories();
-      localStorage.setItem('voko_categories', JSON.stringify(allCategories));
-      return allCategories;
-    } catch {}
-  }
-
+  // Last resort: demo categories
   allCategories = [...DEMO_CATEGORIES];
   localStorage.setItem('voko_categories', JSON.stringify(allCategories));
   return allCategories;

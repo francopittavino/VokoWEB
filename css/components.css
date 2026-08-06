@@ -48,17 +48,28 @@
 }
 
 .navbar__logo {
-  font-family: var(--font-display);
-  font-size: var(--fs-title-lg);
-  font-weight: var(--fw-bold);
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
   color: var(--color-primary);
-  letter-spacing: var(--ls-wide);
-  text-transform: uppercase;
+  line-height: 1;
+  user-select: none;
   white-space: nowrap;
+  transition: transform var(--transition-fast), opacity var(--transition-fast);
 }
 
-.navbar__logo span {
-  color: var(--color-secondary);
+.navbar__logo-svg {
+  height: 38px;
+  width: auto;
+  max-width: 140px;
+  color: var(--color-primary);
+  fill: currentColor;
+  display: block;
+  transition: transform var(--transition-fast);
+}
+
+.navbar__logo:hover .navbar__logo-svg {
+  transform: scale(1.04);
 }
 
 .navbar__nav {

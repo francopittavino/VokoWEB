@@ -6,7 +6,7 @@ Este archivo documenta de manera integral el contexto, la arquitectura, el progr
 
 ## 📌 1. Visión General del Proyecto
 
-- **Negocio:** Voko Accesorios (boutique artesanal de accesorios de cuero: bolsos, bandoleras, riñoneras, carteras, morrales, materos, sobres, cinturones, billeteras).
+- **Negocio:** Voko Accesorios (boutique artesanal de accesorios de cuerina: bolsos, bandoleras, riñoneras, carteras, morrales, materos, sobres, cinturones, billeteras).
 - **Propietaria:** Mamá de Franco.
 - **Redes Oficiales:**
   - **Instagram:** [instagram.com/voko.accesorios](https://www.instagram.com/voko.accesorios)
@@ -91,63 +91,35 @@ Pagina V/
    - **`js/cart.js`**: Carrito lateral deslizable (drawer), persistencia de items en `localStorage`, actualización de badges en tiempo real y mensaje con lista estructurada enviada a WhatsApp.
    - **`js/products.js`**: Lógica de filtrado en cliente, estado de carga con fallback de datos demo en caso de no estar conectado a la nube.
    - **`js/supabase.js`**: Cliente completo para productos, categorías, ventas y storage.
-5. **Panel de Administración (MVP Creado):**
+5. **Panel de Administración y Módulos JS Finalizados:**
    - **`admin/index.html`**: Pantalla de login.
-   - **`admin/dashboard.html`**: Vista general con tarjetas de métricas (stock bajo, productos, ventas), accesos rápidos y tabla de transacciones.
-   - **`admin/inventario.html`**: CRUD completo de productos y categorías con toggles de activo/destacado, badges, imágenes y modal.
+   - **`admin/dashboard.html` + `js/admin/dashboard.js`**: Vista general con tarjetas de métricas en vivo (productos, ventas del día, pedidos online, stock bajo) y tabla de transacciones recientes.
+   - **`admin/inventario.html` + `js/admin/inventory.js`**: CRUD completo de productos y categorías con toggles de activo/destacado, badges, imágenes y buscador en tiempo real.
+   - **`admin/pos.html` + `js/admin/pos.js`**: Punto de Venta para ferias. Registra ventas presenciales, calcula subtotal/total y descuenta el stock automáticamente.
+   - **`admin/calculadora.html` + `js/admin/calculator.js`**: Calculadora de costos artesanales y botón para incorporar el accesorio calculado directamente al inventario.
+   - **`admin/pedidos.html` + `js/admin/orders.js`**: Gestión dinámica de encargos a medida (`personalizado.html`) y consultas de la web (`nosotros.html`) con buscador y cambios de estado (`Pendiente`, `En Proceso`, `Completado`, `Cancelado`).
+6. **Script de Base de Datos SQL:**
+   - **`supabase_schema.sql`**: Generado en la raíz con las 5 tablas principales (`categorias`, `productos`, `ventas`, `venta_items`, `pedidos`), RLS y bucket de almacenamiento `product-images`.
 
 ---
 
 ## 🚨 6. Features Pendientes / Backlog para el Siguiente Modelo
 
-A continuación se detalla lo que faltó implementar o conectar respecto al plan original:
+A continuación se detalla lo pendiente para el despliegue final:
 
-### 📥 1. Punto de Venta (POS) para Ferias (`admin/pos.html` + `js/admin/pos.js`)
-- **Descripción:** Interfaz tipo caja registradora para ferias artesanales o ventas presenciales.
-- **Requerimientos:**
-  - Buscador o selector rápido de productos con imágenes en miniatura.
-  - Teclado o controles de cantidad rápida (+1, -1).
-  - Cálculo instantáneo de subtotal, descuentos y total final.
-  - Botón "Cobrar / Confirmar Venta": registra la venta en la DB y **descuenta el stock automáticamente** de la tabla de productos.
-  - Impresión de ticket digital o resumen de venta rápida.
+### ☁️ 1. Conexión a Instancia Real de Supabase
+- Ejecutar el script `supabase_schema.sql` en el Editor de SQL de Supabase.
+- Reemplazar las credenciales en `js/config.js` (`SUPABASE_URL` y `SUPABASE_ANON_KEY`).
 
-### 🧮 2. Calculadora de Costos y Precios Sugeridos (`admin/calculadora.html` + `js/admin/calculator.js`)
-- **Descripción:** Herramienta interna para determinar el precio de venta de nuevos accesorios de cuero.
-- **Requerimientos:**
-  - Formulario de entrada: Costo de materia prima (cuero, herrajes, hilos) + Horas de mano de obra * Precio por hora + Gastos indirectos (luz, fletes).
-  - Selector de Margen de Ganancia deseado (ej. 40%, 50%, 60%).
-  - Resumen visual: Desglose del costo base, utilidad neta y precio final sugerido al público.
-  - Botón **"Guardar como Producto"**: crea automáticamente un borrador del producto en el inventario con el precio calculado.
+### 🖼️ 2. Sustitución por Fotos Reales de Voko
+- Reemplazar las imágenes temporales de Unsplash en `images/productos/` por fotos reales tomadas a los productos artesanales y al taller.
 
-### 📋 3. Vista de Pedidos Online Recibidos (`admin/pedidos.html` + `js/admin/orders.js`)
-- **Descripción:** Panel para llevar el seguimiento de encargos personalizados o consultas que entraron por la web.
-- **Requerimientos:**
-  - Lista de pedidos con estados: `Pendiente`, `En Proceso`, `Enviado`, `Entregado`.
-  - Ver detalles de la foto de referencia adjuntada por el cliente y las especificaciones.
+### 🚀 3. Deploy a Producción en Vercel / Netlify
+- El proyecto compila limpiamente (`npm run build`). Subir repositorio a GitHub y conectar con Vercel para obtener la URL pública.
 
-### 📦 4. Modularización de Scripts Admin (`js/admin/*.js`)
-- **Descripción:** Actualmente los scripts del admin están insertados en etiquetas `<script>` dentro de los HTML de `/admin/`. Se recomienda modularizarlos en la carpeta `js/admin/` (`inventory.js`, `pos.js`, `calculator.js`, `dashboard.js`) para mantener un código limpio y mantenible.
-
-### ☁️ 5. Conexión y Script SQL de Supabase Real
-- **Descripción:** Configuración en la consola de Supabase.
-- **Requerimientos:**
-  - Ejecutar el script de creación de tablas en Supabase (`categorias`, `productos`, `ventas`, `venta_items`).
-  - Crear el bucket de storage público `product-images`.
-  - Reemplazar las credenciales en `js/config.js` (`SUPABASE_URL` y `SUPABASE_ANON_KEY`).
-
-### 🖼️ 6. Sustitución por fotos reales de Voko
-- **Descripción:** Reemplazar las imágenes temporales de Unsplash con fotografías reales tomadas a los productos artesanales y al taller en `images/productos/`.
-
-### 🚀 7. Deploy a Producción en Vercel
-- **Descripción:** Publicación del sitio.
-- **Requerimientos:**
-  - Ejecutar build de prueba (`npm run build`).
-  - Subir a Vercel para obtener la URL pública (ej. `voko-accesorios.vercel.app`).
-  - Configurar variables de entorno en el panel de Vercel.
-
-### 💎 8. Pulido Final y Assets
-- **Favicon:** Crear `favicon.ico` con el isotipo de la letra "V" de Voko.
-- **OpenGraph:** Agregar imagen previa (`og:image`) para cuando se comparta la web en WhatsApp o Instagram.
+### 💎 4. Pulido Final y Assets
+- **Favicon:** Crear `favicon.ico` con el isotipo de la letra "V" de Voko Accesorios.
+- **OpenGraph:** Agregar metaetiqueta e imagen previa (`og:image`) para compartidos en WhatsApp o Instagram.
 
 ---
 

@@ -134,50 +134,6 @@
     </div>
   </div>
 
-  <script type="module">
-    // Sidebar toggle
-    const sidebar = document.getElementById('admin-sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-    const toggle = document.getElementById('sidebar-toggle');
-
-    toggle?.addEventListener('click', () => {
-      sidebar.classList.toggle('open');
-      overlay.classList.toggle('open');
-    });
-
-    overlay?.addEventListener('click', () => {
-      sidebar.classList.remove('open');
-      overlay.classList.remove('open');
-    });
-
-    // Logout
-    document.getElementById('logout-btn')?.addEventListener('click', () => {
-      sessionStorage.removeItem('voko_admin');
-      window.location.href = '/admin/';
-    });
-
-    // Show email
-    const email = sessionStorage.getItem('voko_admin_email');
-    if (email) {
-      document.getElementById('admin-email').textContent = email;
-    }
-
-    // Load stats from Supabase (or use demo data)
-    async function initStats() {
-      try {
-        const { getDashboardStats } = await import('/js/supabase.js');
-        const stats = await getDashboardStats();
-        document.getElementById('stat-products').textContent = stats.totalProducts;
-        document.getElementById('stat-sales-today').textContent = `$${stats.salesToday.toLocaleString('es-AR')}`;
-        document.getElementById('stat-orders').textContent = stats.salesCount;
-        document.getElementById('stat-low-stock').textContent = stats.lowStockCount;
-      } catch {
-        // Demo mode - keep default values
-        console.info('📊 Dashboard en modo demo');
-      }
-    }
-
-    initStats();
-  </script>
+  <script type="module" src="/js/admin/dashboard.js"></script>
 </body>
 </html>

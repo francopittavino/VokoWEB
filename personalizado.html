@@ -15,12 +15,12 @@
   <!-- Navbar -->
   <nav class="navbar" id="navbar">
     <div class="navbar__inner">
-      <a href="/" class="navbar__logo">VOKO <span>ACCESORIOS</span></a>
+      <a href="/" class="navbar__logo" title="Ir al inicio"><img src="/images/voko_logo.svg" alt="VOKO" class="navbar__logo-svg"></a>
       <div class="navbar__nav">
         <a href="/" class="navbar__link">Inicio</a>
-        <a href="/productos.html" class="navbar__link">Productos</a>
-        <a href="/nosotros.html" class="navbar__link">Nosotros</a>
-        <a href="/personalizado.html" class="navbar__link active">Personalizado</a>
+        <a href="/productos" class="navbar__link">Productos</a>
+        <a href="/nosotros" class="navbar__link">Nosotros</a>
+        <a href="/personalizado" class="navbar__link active">Personalizado</a>
       </div>
       <div class="navbar__actions">
         <a href="https://www.instagram.com/voko.accesorios" target="_blank" class="navbar__icon-btn hide-mobile" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/></svg></a>
@@ -32,9 +32,9 @@
 
   <div class="mobile-menu">
     <a href="/" class="mobile-menu__link">Inicio</a>
-    <a href="/productos.html" class="mobile-menu__link">Productos</a>
-    <a href="/nosotros.html" class="mobile-menu__link">Nosotros</a>
-    <a href="/personalizado.html" class="mobile-menu__link active">Personalizado</a>
+    <a href="/productos" class="mobile-menu__link">Productos</a>
+    <a href="/nosotros" class="mobile-menu__link">Nosotros</a>
+    <a href="/personalizado" class="mobile-menu__link active">Personalizado</a>
   </div>
 
   <!-- Main -->
@@ -44,7 +44,7 @@
     <section class="section container" style="text-align: center; padding-bottom: 0;">
       <h1 style="font-family: var(--font-display); font-size: var(--fs-display-md); color: var(--color-primary); margin-bottom: var(--space-4);">Pedido a medida</h1>
       <p style="font-size: var(--fs-body-lg); color: var(--color-on-surface-variant); max-width: 600px; margin-inline: auto;">
-        Compartí tu visión con nosotros. Subí una imagen de referencia o describí detalladamente el accesorio que deseás, y nuestros artesanos lo harán realidad.
+        Compartí tu visión con nosotros. Subí una imagen de referencia o describí detalladamente el accesorio que deseás, y lo confeccionaremos a mano especialmente para vos.
       </p>
     </section>
 
@@ -53,28 +53,33 @@
       <div class="custom-order-section">
         <div class="custom-order-form reveal">
           <form id="custom-order-form">
-            <!-- Image Upload -->
-            <div class="input-group" style="margin-bottom: var(--space-6);">
-              <label class="input-label">Foto de referencia (opcional)</label>
-              <label class="image-upload" id="image-upload-area" for="ref-image">
-                <div class="image-upload__icon">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-                  </svg>
-                </div>
-                <p class="image-upload__text">Hacé clic para subir o arrastrá una imagen</p>
-                <p class="image-upload__hint">PNG, JPG hasta 10MB</p>
-                <input type="file" id="ref-image" accept="image/*" style="display: none;">
-              </label>
-              <div id="image-preview" style="display: none; margin-top: var(--space-3); border-radius: var(--radius-md); overflow: hidden;">
-                <img id="preview-img" alt="Vista previa" style="width: 100%; max-height: 200px; object-fit: cover;">
-              </div>
+            <!-- Title -->
+            <div class="input-group" style="margin-bottom: var(--space-4);">
+              <label class="input-label" for="order-title">Producto o Accesorio a Medida</label>
+              <input type="text" class="input-field" id="order-title" placeholder="Ej: Bolso matero en cuerina suela / Riñonera borravino" required>
+            </div>
+
+            <!-- Quantity -->
+            <div class="input-group" style="margin-bottom: var(--space-4);">
+              <label class="input-label" for="order-qty">Cantidad</label>
+              <input type="number" class="input-field" id="order-qty" value="1" min="1" max="99" required>
             </div>
 
             <!-- Description -->
             <div class="input-group" style="margin-bottom: var(--space-6);">
-              <label class="input-label" for="order-description">Descripción del pedido</label>
-              <textarea class="input-field" id="order-description" placeholder="Contanos los detalles: colores, materiales, medidas, o cualquier deseo especial..." rows="6" required></textarea>
+              <label class="input-label" for="order-description">Descripción / Detalles del diseño</label>
+              <textarea class="input-field" id="order-description" placeholder="Especificá colores, tonos de cuerina, herrajes, medidas aproximadas o cualquier detalle especial..." rows="5" required></textarea>
+            </div>
+
+            <!-- Notice for Reference Photo -->
+            <div style="background: var(--color-surface-container-low); padding: var(--space-4); border-radius: var(--radius-md); border: 1px solid var(--color-outline-variant); margin-bottom: var(--space-6); display: flex; align-items: flex-start; gap: var(--space-3);">
+              <span style="font-size: 22px; line-height: 1;">📸</span>
+              <div>
+                <h4 style="font-size: var(--fs-title-sm); font-weight: var(--fw-bold); color: var(--color-primary); margin-bottom: 4px;">¿Tenés una foto o boceto de referencia?</h4>
+                <p style="font-size: 13px; color: var(--color-on-surface-variant); line-height: 1.4;">
+                  Al presionar el botón de abajo se abrirá tu WhatsApp con el detalle del pedido pre-cargado. <strong>Allí podrás adjuntar tu foto de referencia directamente en el chat</strong> con mayor facilidad.
+                </p>
+              </div>
             </div>
 
             <!-- Submit -->
@@ -82,17 +87,17 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
               </svg>
-              Enviar por WhatsApp
+              Enviar Pedido por WhatsApp
             </button>
             <p style="margin-top: var(--space-3); font-size: var(--fs-label-md); color: var(--color-on-surface-variant); text-align: center;">
-              * Al enviar, serás redirigido a WhatsApp para finalizar los detalles con nuestro equipo.
+              * Al presionar, serás redirigido a WhatsApp con el mensaje estructurado para acordar los detalles.
             </p>
           </form>
         </div>
 
         <!-- Inspiration Image -->
         <div class="custom-order-inspiration reveal reveal-delay-1">
-          <img src="https://images.unsplash.com/photo-1611078489935-0cb964de46d6?w=600&h=800&fit=crop" alt="Inspiración artesanal" loading="lazy">
+          <img src="/images/grid_personalizado.jpg" alt="Inspiración artesanal — Boceto y herramientas Voko" loading="lazy">
           <div class="custom-order-inspiration__overlay">
             <h2 class="custom-order-inspiration__title">Inspiración Artesanal</h2>
             <p class="custom-order-inspiration__text">Cada pieza cuenta una historia única. Dejá que la tuya sea creada con paciencia y detalle en nuestro taller.</p>
@@ -152,8 +157,8 @@
         </div>
         <div>
           <h3 class="footer__section-title">Explorar</h3>
-          <a href="/productos.html" class="footer__link">Productos</a>
-          <a href="/productos.html" class="footer__link">Nueva Colección</a>
+          <a href="/productos" class="footer__link">Productos</a>
+          <a href="/productos" class="footer__link">Nueva Colección</a>
           <a href="#" class="footer__link">Regalos</a>
         </div>
         <div>
@@ -188,65 +193,45 @@
   <script type="module">
     import '/js/navigation.js';
     import '/js/cart.js';
+    import { getWhatsAppLink } from '/js/config.js';
 
-    // Image upload preview
-    const imageInput = document.getElementById('ref-image');
-    const uploadArea = document.getElementById('image-upload-area');
-    const previewContainer = document.getElementById('image-preview');
-    const previewImg = document.getElementById('preview-img');
-
-    imageInput?.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          previewImg.src = ev.target.result;
-          previewContainer.style.display = 'block';
-          uploadArea.classList.add('has-file');
-          uploadArea.querySelector('.image-upload__text').textContent = file.name;
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-
-    // Drag & drop
-    uploadArea?.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      uploadArea.style.borderColor = 'var(--color-primary)';
-      uploadArea.style.backgroundColor = 'var(--color-primary-fixed)';
-    });
-
-    uploadArea?.addEventListener('dragleave', () => {
-      uploadArea.style.borderColor = '';
-      uploadArea.style.backgroundColor = '';
-    });
-
-    uploadArea?.addEventListener('drop', (e) => {
-      e.preventDefault();
-      uploadArea.style.borderColor = '';
-      uploadArea.style.backgroundColor = '';
-      const file = e.dataTransfer.files[0];
-      if (file && file.type.startsWith('image/')) {
-        imageInput.files = e.dataTransfer.files;
-        imageInput.dispatchEvent(new Event('change'));
-      }
-    });
-
-    // Form submit → WhatsApp
+    // Form submit → WhatsApp + Save to Local Orders
     document.getElementById('custom-order-form')?.addEventListener('submit', (e) => {
       e.preventDefault();
-      const description = document.getElementById('order-description').value;
-      const hasImage = imageInput?.files?.length > 0;
+      const title = document.getElementById('order-title').value.trim();
+      const qty = parseInt(document.getElementById('order-qty').value) || 1;
+      const description = document.getElementById('order-description').value.trim();
 
-      let message = `✨ *Pedido Personalizado — Voko Accesorios*\n\n`;
-      message += `*Descripción:*\n${description}\n\n`;
-      if (hasImage) {
-        message += `📸 _Tengo una foto de referencia que te enviaré por este chat._\n\n`;
-      }
-      message += `¡Gracias! Espero su respuesta 😊`;
+      // Persist to local orders for Admin panel tracking
+      let orders = JSON.parse(localStorage.getItem('voko_orders') || '[]');
+      const newOrder = {
+        id: 'order-' + Date.now(),
+        cliente: 'Cliente Web',
+        tipo: 'Encargo a Medida',
+        detalle: `[${qty}x ${title}] - ${description}`,
+        hasImage: false,
+        estado: 'Pendiente',
+        fecha: new Date().toLocaleDateString('es-AR') + ' ' + new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+      };
+      orders.unshift(newOrder);
+      localStorage.setItem('voko_orders', JSON.stringify(orders));
 
-      const encoded = encodeURIComponent(message);
-      window.open(`https://wa.me/5493434289398?text=${encoded}`, '_blank');
+      // Build WhatsApp structured message with Unicode-safe code points
+      const eSparkles = String.fromCodePoint(0x2728);
+      const ePin = String.fromCodePoint(0x1F4CC);
+      const eNum = String.fromCodePoint(0x1F522);
+      const eMemo = String.fromCodePoint(0x1F4DD);
+      const eCamera = String.fromCodePoint(0x1F4F8);
+      const eSmile = String.fromCodePoint(0x1F60A);
+
+      let message = `${eSparkles} *PEDIDO A MEDIDA — VOKO ACCESORIOS* ${eSparkles}\n\n`;
+      message += `${ePin} *Producto / Idea:* ${title}\n`;
+      message += `${eNum} *Cantidad:* ${qty} unidad${qty > 1 ? 'es' : ''}\n\n`;
+      message += `${eMemo} *Descripción / Detalles:* \n${description}\n\n`;
+      message += `${eCamera} *(Si tenés una foto de referencia, podés adjuntarla a continuación en este chat)*\n\n`;
+      message += `¡Gracias! Espero su respuesta ${eSmile}`;
+
+      window.open(getWhatsAppLink(message), '_blank');
     });
   </script>
 

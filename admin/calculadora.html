@@ -49,7 +49,7 @@
             <form id="calc-form">
               <div class="input-group" style="margin-bottom: var(--space-4);">
                 <label class="input-label" for="calc-name">Nombre del accesorio</label>
-                <input type="text" class="input-field" id="calc-name" placeholder="Ej: Morral de Cuero Vacuno" required>
+                <input type="text" class="input-field" id="calc-name" placeholder="Ej: Morral de Cuerina Premium" required>
               </div>
 
               <div class="admin-form-row">
@@ -119,70 +119,6 @@
     </div>
   </div>
 
-  <script type="module">
-    import { formatPrice } from '/js/config.js';
-
-    function calculate() {
-      const materials = parseFloat(document.getElementById('calc-materials').value) || 0;
-      const hours = parseFloat(document.getElementById('calc-hours').value) || 0;
-      const rate = parseFloat(document.getElementById('calc-hourly-rate').value) || 0;
-      const extras = parseFloat(document.getElementById('calc-extras').value) || 0;
-      const marginPercent = parseFloat(document.getElementById('calc-margin').value) || 50;
-
-      const laborCost = hours * rate;
-      const baseCost = materials + laborCost + extras;
-      const profit = baseCost * (marginPercent / 100);
-      const finalPrice = Math.round(baseCost + profit);
-
-      document.getElementById('res-mat').textContent = formatPrice(materials);
-      document.getElementById('res-labor').textContent = formatPrice(laborCost);
-      document.getElementById('res-base').textContent = formatPrice(baseCost);
-      document.getElementById('res-profit').textContent = formatPrice(profit);
-      document.getElementById('res-price').textContent = formatPrice(finalPrice);
-
-      return { finalPrice, baseCost, profit };
-    }
-
-    document.querySelectorAll('#calc-form input, #calc-form select').forEach(el => {
-      el.addEventListener('input', calculate);
-    });
-
-    document.getElementById('btn-save-to-inventory').addEventListener('click', () => {
-      const name = document.getElementById('calc-name').value;
-      if (!name) {
-        alert('Por favor, ingresá un nombre para el accesorio.');
-        return;
-      }
-
-      const { finalPrice } = calculate();
-      let products = JSON.parse(localStorage.getItem('voko_products') || '[]');
-      
-      products.push({
-        id: 'prod-' + Date.now(),
-        nombre: name,
-        precio: finalPrice,
-        stock: 1,
-        badge: 'nuevo',
-        destacado: false,
-        activo: true,
-        categoria_id: 'cat-1',
-        imagen_url: ''
-      });
-
-      localStorage.setItem('voko_products', JSON.stringify(products));
-      alert(`¡Producto "${name}" guardado con éxito en el inventario a ${formatPrice(finalPrice)}!`);
-      location.href = '/admin/inventario.html';
-    });
-
-    // Sidebar toggle
-    const sidebar = document.getElementById('admin-sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-    document.getElementById('sidebar-toggle').addEventListener('click', () => {
-      sidebar.classList.toggle('open');
-      overlay.classList.toggle('open');
-    });
-
-    calculate();
-  </script>
+  <script type="module" src="/js/admin/calculator.js"></script>
 </body>
 </html>

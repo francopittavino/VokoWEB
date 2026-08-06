@@ -54,6 +54,17 @@
   animation: fadeInUp 0.8s ease;
 }
 
+.hero__title-logo {
+  height: 90px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
+  margin-bottom: var(--space-3);
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25));
+  animation: fadeInUp 0.8s ease;
+}
+
 .hero__subtitle {
   font-size: var(--fs-body-lg);
   color: rgba(255, 255, 255, 0.9);

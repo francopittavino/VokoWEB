@@ -142,12 +142,15 @@ export async function getProductById(id) {
 }
 
 export async function createProduct(product) {
+  // Remove local-only fields that don't exist in the DB
+  const { id, ...cleanProduct } = product;
+  // Remove null/undefined categoria_id if it starts with 'cat-' (local ID)
+  if (cleanProduct.categoria_id && cleanProduct.categoria_id.startsWith('cat-')) {
+    delete cleanProduct.categoria_id;
+  }
   const { data, error } = await getClient()
     .from('productos')
-    .insert({
-      ...product,
-      updated_at: new Date().toISOString(),
-    })
+    .insert(cleanProduct)
     .select()
     .single();
 
@@ -156,12 +159,16 @@ export async function createProduct(product) {
 }
 
 export async function updateProduct(id, updates) {
+  // Remove local-only fields that don't exist in the DB
+  const cleanUpdates = { ...updates };
+  delete cleanUpdates.id;
+  delete cleanUpdates.categorias; // Supabase join field, not writable
+  if (cleanUpdates.categoria_id && cleanUpdates.categoria_id.startsWith('cat-')) {
+    delete cleanUpdates.categoria_id;
+  }
   const { data, error } = await getClient()
     .from('productos')
-    .update({
-      ...updates,
-      updated_at: new Date().toISOString(),
-    })
+    .update(cleanUpdates)
     .eq('id', id)
     .select()
     .single();
@@ -195,7 +202,7 @@ export async function createSale(sale) {
     .from('ventas')
     .insert({
       total: sale.total,
-      tipo: sale.tipo || 'local',
+      metodo_pago: sale.metodo_pago || 'Efectivo',
     })
     .select()
     .single();
@@ -208,7 +215,6 @@ export async function createSale(sale) {
     producto_id: item.producto_id,
     cantidad: item.cantidad,
     precio_unitario: item.precio_unitario,
-    subtotal: item.cantidad * item.precio_unitario,
   }));
 
   const { error: itemsError } = await client

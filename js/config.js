@@ -34,7 +34,6 @@ export const APP_CONFIG = {
 
   // Contacto
   contact: {
-    email: 'hola@vokoaccesorios.com',
     phone: '+54 9 343 428-9398',
     address: 'Calle Artesanos 123, Ciudad Creativa',
   },
@@ -84,5 +83,6 @@ export function formatPrice(price) {
  */
 export function getWhatsAppLink(message) {
   const encoded = encodeURIComponent(message);
-  return `https://wa.me/${APP_CONFIG.whatsappNumber}?text=${encoded}`;
+  // Usar api.whatsapp.com directamente evita que el acortador wa.me corrompa los emojis UTF-8 en el HTTP 302 redirect
+  return `https://api.whatsapp.com/send?phone=${APP_CONFIG.whatsappNumber}&text=${encoded}`;
 }

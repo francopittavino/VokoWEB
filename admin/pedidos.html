@@ -45,6 +45,10 @@
         <div class="admin-table-wrapper">
           <div class="admin-table-toolbar">
             <h3 style="font-family: var(--font-display); font-size: var(--fs-headline-sm);">Pedidos Personalizados y Consultas Web</h3>
+            <div class="search-input-wrapper" style="width: 250px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" class="input-field" id="orders-search" placeholder="Buscar pedido o cliente...">
+            </div>
           </div>
           <table class="admin-table">
             <thead>
@@ -54,23 +58,11 @@
                 <th>Detalle</th>
                 <th>Estado</th>
                 <th>Fecha</th>
+                <th>Acciones</th>
               </tr>
             </thead>
-            <tbody>
-              <tr>
-                <td><strong>María González</strong></td>
-                <td>Encargo a Medida</td>
-                <td>Bolso de cuero color suela con grabado de iniciales M.G.</td>
-                <td><span class="status-pill status-pill--pending">En Proceso</span></td>
-                <td>Hace 2 horas</td>
-              </tr>
-              <tr>
-                <td><strong>Lucas PERALTA</strong></td>
-                <td>Consulta Web</td>
-                <td>Consulta por disponibilidad de Matero Premium Cuero</td>
-                <td><span class="status-pill status-pill--active">Completado</span></td>
-                <td>Ayer</td>
-              </tr>
+            <tbody id="orders-tbody">
+              <!-- Rendered by JS -->
             </tbody>
           </table>
         </div>
@@ -78,13 +70,6 @@
     </div>
   </div>
 
-  <script type="module">
-    const sidebar = document.getElementById('admin-sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-    document.getElementById('sidebar-toggle').addEventListener('click', () => {
-      sidebar.classList.toggle('open');
-      overlay.classList.toggle('open');
-    });
-  </script>
+  <script type="module" src="/js/admin/orders.js"></script>
 </body>
 </html>

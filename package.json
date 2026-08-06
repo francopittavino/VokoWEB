@@ -2,7 +2,7 @@
   "name": "voko-accesorios",
   "private": true,
   "version": "1.0.0",
-  "description": "Voko Accesorios — Boutique artesanal de accesorios de cuero",
+  "description": "Voko Accesorios — Boutique artesanal de accesorios de cuerina",
   "type": "module",
   "scripts": {
     "dev": "vite",

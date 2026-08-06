@@ -225,7 +225,10 @@ export function toggleCart() {
 export function checkoutWhatsApp() {
   if (cart.length === 0) return;
 
-  let message = `🛒 *Nuevo Pedido — Voko Accesorios*\n\n`;
+  const eCart = String.fromCodePoint(0x1F6D2);
+  const eSmile = String.fromCodePoint(0x1F60A);
+
+  let message = `${eCart} *Nuevo Pedido — Voko Accesorios*\n\n`;
   message += `Hola! Quiero hacer el siguiente pedido:\n\n`;
 
   cart.forEach((item, index) => {
@@ -234,7 +237,7 @@ export function checkoutWhatsApp() {
 
   message += `\n──────────────\n`;
   message += `*Total estimado: ${formatPrice(getCartTotal())}*\n\n`;
-  message += `¡Gracias! 😊`;
+  message += `¡Gracias! ${eSmile}`;
 
   const url = getWhatsAppLink(message);
   window.open(url, '_blank');

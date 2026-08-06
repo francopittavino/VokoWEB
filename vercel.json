@@ -1,5 +1,9 @@
 {
+  "cleanUrls": true,
   "rewrites": [
+    { "source": "/productos", "destination": "/productos.html" },
+    { "source": "/nosotros", "destination": "/nosotros.html" },
+    { "source": "/personalizado", "destination": "/personalizado.html" },
     { "source": "/admin/(.*)", "destination": "/admin/$1" }
   ]
 }
