@@ -1164,6 +1164,281 @@ select.input-field {
   pointer-events: auto;
 }
 
+/* ════════════════════════════════════════════
+   FLOATING CART TOAST POPUP
+   ════════════════════════════════════════════ */
+.cart-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: var(--z-toast);
+  background-color: var(--color-surface-container-lowest);
+  border: 1.5px solid var(--color-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  max-width: 380px;
+  width: calc(100% - 32px);
+  transform: translateY(140%);
+  opacity: 0;
+  transition: transform var(--transition-spring), opacity var(--transition-base);
+  pointer-events: none;
+}
+
+.cart-toast.show {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.cart-toast__img {
+  width: 60px;
+  height: 60px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--color-outline-variant);
+}
+
+.cart-toast__content {
+  flex: 1;
+}
+
+.cart-toast__title {
+  font-size: var(--fs-label-sm);
+  color: var(--color-success);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.cart-toast__name {
+  font-size: var(--fs-body-md);
+  font-weight: var(--fw-bold);
+  color: #ffffff;
+  line-height: 1.3;
+}
+
+.cart-toast__price {
+  font-size: var(--fs-body-sm);
+  color: var(--color-primary);
+  font-weight: var(--fw-semibold);
+  margin-top: 2px;
+}
+
+.cart-toast__actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.cart-toast__close {
+  background: none;
+  border: none;
+  color: var(--color-on-surface-variant);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.cart-toast__close:hover {
+  color: #ffffff;
+}
+
+/* ════════════════════════════════════════════
+   PRODUCT PREVIEW & ZOOM MODAL
+   ════════════════════════════════════════════ */
+.preview-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: var(--z-modal);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition-base), visibility var(--transition-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+}
+
+.preview-modal-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.preview-modal {
+  background-color: var(--color-surface-container-lowest);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-2xl);
+  max-width: 850px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-xl);
+  position: relative;
+  transform: scale(0.92);
+  transition: transform var(--transition-spring);
+}
+
+.preview-modal-overlay.show .preview-modal {
+  transform: scale(1);
+}
+
+.preview-modal__close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  transition: background-color var(--transition-fast);
+}
+
+.preview-modal__close:hover {
+  background-color: var(--color-primary);
+}
+
+.preview-modal__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .preview-modal__grid {
+    grid-template-columns: 1.2fr 1fr;
+  }
+}
+
+.preview-modal__img-wrapper {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-surface-container-low);
+  min-height: 340px;
+  cursor: zoom-in;
+  border-radius: var(--radius-2xl) 0 0 var(--radius-2xl);
+}
+
+@media (max-width: 767px) {
+  .preview-modal__img-wrapper {
+    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+  }
+}
+
+.preview-modal__img {
+  width: 100%;
+  height: 100%;
+  min-height: 380px;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.2s ease-out;
+  transform-origin: center center;
+}
+
+.preview-modal__img-wrapper.zoomed .preview-modal__img {
+  transform: scale(2.2);
+  cursor: zoom-out;
+}
+
+.preview-modal__zoom-hint {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: #ffffff;
+  font-size: var(--fs-label-sm);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+}
+
+.preview-modal__body {
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.preview-modal__category {
+  font-size: var(--fs-label-sm);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+  color: var(--color-primary);
+  margin-bottom: var(--space-2);
+}
+
+.preview-modal__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-headline-lg);
+  color: #ffffff;
+  margin-bottom: var(--space-2);
+}
+
+.preview-modal__price {
+  font-size: var(--fs-headline-md);
+  font-weight: var(--fw-bold);
+  color: var(--color-primary);
+  margin-bottom: var(--space-6);
+}
+
+.preview-modal__qty-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.preview-modal__qty-picker {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid var(--color-outline-variant);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.preview-modal__qty-btn {
+  background: none;
+  border: none;
+  padding: 8px 14px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.preview-modal__qty-btn:hover {
+  background-color: var(--color-surface-container-high);
+}
+
+.preview-modal__qty-val {
+  padding: 0 12px;
+  font-weight: bold;
+  font-size: 15px;
+}
+
+.preview-modal__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
 .toast--success { background-color: var(--color-success); color: #fff; }
 .toast--error { background-color: var(--color-error); color: #fff; }
 

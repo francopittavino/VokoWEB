@@ -231,16 +231,17 @@ function createProductCard(product) {
   const card = document.createElement('div');
   card.className = 'product-card';
   card.innerHTML = `
-    <div class="product-card__image-container">
+    <div class="product-card__image-container" title="Hacer clic para ampliar imagen">
       <img class="product-card__image" 
            src="${product.imagen_url || '/images/placeholder.jpg'}" 
            alt="${product.nombre}"
            loading="lazy">
       ${badgeHTML}
+      <span style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); color: #fff; padding: 4px 8px; border-radius: 12px; font-size: 11px; backdrop-filter: blur(4px);">🔍 Ver Foto</span>
     </div>
     <div class="product-card__body">
       <div class="product-card__category">${product.categorias?.nombre || ''}</div>
-      <h3 class="product-card__name">${product.nombre}</h3>
+      <h3 class="product-card__name" style="cursor: pointer;" title="Ampliar imagen">${product.nombre}</h3>
       <div class="product-card__price">${formatPrice(product.precio)}</div>
       <button class="product-card__add-btn" data-product-id="${product.id}" aria-label="Agregar ${product.nombre} al carrito">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -252,11 +253,18 @@ function createProductCard(product) {
     </div>
   `;
 
+  // Open Preview Modal on image or name click
+  const imgContainer = card.querySelector('.product-card__image-container');
+  const nameEl = card.querySelector('.product-card__name');
+  [imgContainer, nameEl].forEach((el) => {
+    el.addEventListener('click', () => openProductPreviewModal(product));
+  });
+
   // Add to cart click handler
   const addBtn = card.querySelector('.product-card__add-btn');
-  addBtn.addEventListener('click', () => {
+  addBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
     addToCart(product);
-    // Button feedback animation
     addBtn.textContent = '✓ Agregado';
     addBtn.style.backgroundColor = 'var(--color-success)';
     setTimeout(() => {
@@ -272,6 +280,122 @@ function createProductCard(product) {
   });
 
   return card;
+}
+
+export function openProductPreviewModal(product) {
+  let overlay = document.getElementById('preview-modal-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'preview-modal-overlay';
+    overlay.className = 'preview-modal-overlay';
+    document.body.appendChild(overlay);
+  }
+
+  const name = product.nombre || product.name;
+  const price = product.precio || product.price;
+  const category = product.categorias?.nombre || 'Accesorio';
+  const imgUrl = product.imagen_url || product.image || '/images/placeholder.jpg';
+  let qty = 1;
+
+  overlay.innerHTML = `
+    <div class="preview-modal">
+      <button class="preview-modal__close" aria-label="Cerrar modal">✕</button>
+      <div class="preview-modal__grid">
+        <div class="preview-modal__img-wrapper" id="modal-img-wrapper">
+          <img src="${imgUrl}" alt="${name}" class="preview-modal__img" id="modal-img">
+          <span class="preview-modal__zoom-hint">🔍 Mové el cursor para Zoom</span>
+        </div>
+        <div class="preview-modal__body">
+          <span class="preview-modal__category">${category}</span>
+          <h2 class="preview-modal__title">${name}</h2>
+          <div class="preview-modal__price">${formatPrice(price)}</div>
+
+          <div class="preview-modal__qty-row">
+            <span style="font-size: 14px; font-weight: 600;">Cantidad:</span>
+            <div class="preview-modal__qty-picker">
+              <button class="preview-modal__qty-btn" id="modal-qty-minus">−</button>
+              <span class="preview-modal__qty-val" id="modal-qty-val">1</span>
+              <button class="preview-modal__qty-btn" id="modal-qty-plus">+</button>
+            </div>
+          </div>
+
+          <div class="preview-modal__actions">
+            <button class="btn btn--primary btn--full" id="modal-add-cart">
+              🛒 Agregar al Carrito
+            </button>
+            <button class="btn btn--whatsapp btn--full" id="modal-ask-wa">
+              💬 Consultar por WhatsApp
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Show modal
+  setTimeout(() => overlay.classList.add('show'), 10);
+  document.body.style.overflow = 'hidden';
+
+  // Close helper
+  const closeModal = () => {
+    overlay.classList.remove('show');
+    document.body.style.overflow = '';
+  };
+
+  overlay.querySelector('.preview-modal__close')?.addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeModal();
+  });
+
+  // Quantity controls
+  const qtyVal = overlay.querySelector('#modal-qty-val');
+  overlay.querySelector('#modal-qty-minus')?.addEventListener('click', () => {
+    if (qty > 1) {
+      qty--;
+      qtyVal.textContent = qty;
+    }
+  });
+
+  overlay.querySelector('#modal-qty-plus')?.addEventListener('click', () => {
+    qty++;
+    qtyVal.textContent = qty;
+  });
+
+  // Add to cart
+  overlay.querySelector('#modal-add-cart')?.addEventListener('click', () => {
+    addToCart(product, qty);
+    closeModal();
+  });
+
+  // WhatsApp ask
+  overlay.querySelector('#modal-ask-wa')?.addEventListener('click', () => {
+    const eSparkles = String.fromCodePoint(0x2728);
+    const msg = `${eSparkles} *Consulta por ${name}* — ${formatPrice(price)}\nHola! Quería consultar disponibilidad del accesorio *${name}*.`;
+    window.open(getWhatsAppLink(msg), '_blank');
+  });
+
+  // Interactive Magnification Zoom on Image Move / Click
+  const wrapper = overlay.querySelector('#modal-img-wrapper');
+  const imgEl = overlay.querySelector('#modal-img');
+
+  if (wrapper && imgEl) {
+    wrapper.addEventListener('mousemove', (e) => {
+      const rect = wrapper.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      imgEl.style.transformOrigin = `${x}% ${y}%`;
+      wrapper.classList.add('zoomed');
+    });
+
+    wrapper.addEventListener('mouseleave', () => {
+      wrapper.classList.remove('zoomed');
+      imgEl.style.transformOrigin = 'center center';
+    });
+
+    wrapper.addEventListener('click', () => {
+      wrapper.classList.toggle('zoomed');
+    });
+  }
 }
 
 export function renderProducts(containerSelector, products) {

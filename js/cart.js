@@ -31,24 +31,24 @@ function saveCart() {
 // CART OPERATIONS
 // ──────────────────────────────────────────
 
-export function addToCart(product) {
+export function addToCart(product, qty = 1) {
   const existingIndex = cart.findIndex((item) => item.id === product.id);
 
   if (existingIndex >= 0) {
-    cart[existingIndex].quantity += 1;
+    cart[existingIndex].quantity += qty;
   } else {
     cart.push({
       id: product.id,
       name: product.nombre || product.name,
       price: product.precio || product.price,
       image: product.imagen_url || product.image || '',
-      quantity: 1,
+      quantity: qty,
     });
   }
 
   saveCart();
   updateCartUI();
-  showToast(`${product.nombre || product.name} agregado al carrito`);
+  showAddToCartToast(product);
 }
 
 export function removeFromCart(productId) {
@@ -246,6 +246,51 @@ export function checkoutWhatsApp() {
 // ──────────────────────────────────────────
 // TOAST NOTIFICATION
 // ──────────────────────────────────────────
+
+export function showAddToCartToast(product) {
+  let toast = document.getElementById('cart-floating-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'cart-floating-toast';
+    toast.className = 'cart-toast';
+    document.body.appendChild(toast);
+  }
+
+  const name = product.nombre || product.name;
+  const price = product.precio || product.price;
+  const img = product.imagen_url || product.image || '/images/placeholder.jpg';
+
+  toast.innerHTML = `
+    <img src="${img}" alt="${name}" class="cart-toast__img">
+    <div class="cart-toast__content">
+      <div class="cart-toast__title">✓ Agregado al Carrito</div>
+      <div class="cart-toast__name">${name}</div>
+      <div class="cart-toast__price">${formatPrice(price)}</div>
+      <div class="cart-toast__actions">
+        <button class="btn btn--secondary btn--sm cart-toast__btn-keep">Seguir viendo</button>
+        <button class="btn btn--primary btn--sm cart-toast__btn-cart">Ver Carrito</button>
+      </div>
+    </div>
+    <button class="cart-toast__close" aria-label="Cerrar">✕</button>
+  `;
+
+  // Animate in
+  setTimeout(() => toast.classList.add('show'), 10);
+
+  // Auto dismiss after 4.5s
+  if (toast.dismissTimer) clearTimeout(toast.dismissTimer);
+  toast.dismissTimer = setTimeout(() => {
+    toast.classList.remove('show');
+  }, 4500);
+
+  // Event handlers
+  toast.querySelector('.cart-toast__close')?.addEventListener('click', () => toast.classList.remove('show'));
+  toast.querySelector('.cart-toast__btn-keep')?.addEventListener('click', () => toast.classList.remove('show'));
+  toast.querySelector('.cart-toast__btn-cart')?.addEventListener('click', () => {
+    toast.classList.remove('show');
+    openCart();
+  });
+}
 
 function showToast(message, type = 'default') {
   let container = document.querySelector('.toast-container');
