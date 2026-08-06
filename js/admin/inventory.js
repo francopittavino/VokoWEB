@@ -1,5 +1,5 @@
 import { formatPrice, SUPABASE_URL } from '/js/config.js';
-import { getLocalProducts, saveLocalProducts } from './storage-helper.js';
+import { getLocalProducts, saveLocalProducts, saveLocalProductsAsync, getLocalProductsWithImages, deleteImageFromIDB } from './storage-helper.js';
 
 let categories = [
   { id: 'cat-1', nombre: 'Bolsos', orden: 1, activa: true },
@@ -26,6 +26,11 @@ function loadData() {
 function saveData() {
   localStorage.setItem('voko_categories', JSON.stringify(categories));
   saveLocalProducts(products);
+}
+
+async function saveDataAsync() {
+  localStorage.setItem('voko_categories', JSON.stringify(categories));
+  await saveLocalProductsAsync(products);
 }
 
 // Uses the imported SUPABASE_URL from config.js (which reads env vars correctly)
@@ -58,7 +63,6 @@ function renderCategories() {
 }
 
 window.toggleProductActive = async (id, isActive) => {
-  products = getLocalProducts();
   const p = products.find(pr => String(pr.id) === String(id));
   if (!p) return;
 
@@ -182,25 +186,24 @@ window.editProduct = (id) => {
 window.deleteProduct = async (id) => {
   if (!confirm('¿Eliminar este producto?')) return;
 
-  if (isSupabaseReady()) {
+  // Always delete from in-memory array first
+  products = products.filter(p => String(p.id) !== String(id));
+
+  // Remove image from IndexedDB
+  deleteImageFromIDB(id);
+
+  // Try Supabase if configured
+  if (isSupabaseReady() && !String(id).startsWith('prod-')) {
     try {
       const { deleteProduct: delProd } = await import('/js/supabase.js');
       await delProd(id);
-      // Reload from cloud after delete
-      const { getAllProducts } = await import('/js/supabase.js');
-      products = await getAllProducts();
-      saveData();
-      renderProducts();
-      return;
     } catch (e) {
-      console.warn('Could not delete product in Supabase, falling back to local:', e);
+      console.warn('Could not delete product in Supabase:', e);
     }
   }
-  // Local-only fallback with strict string comparison
-  let freshList = getLocalProducts();
-  freshList = freshList.filter(p => String(p.id) !== String(id));
-  products = freshList;
-  saveLocalProducts(products);
+
+  // Save updated list
+  await saveDataAsync();
   renderProducts(document.getElementById('inventory-search')?.value || '');
 };
 
@@ -410,7 +413,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
-    saveData();
+    await saveDataAsync();
     renderProducts();
     if (formCard) formCard.style.display = 'none';
     if (saveBtn) {
@@ -435,32 +438,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     overlay?.classList.remove('open');
   });
 
-  // ── Init: Load data ──
+  // ── Init: Load data with resolved images ──
   loadData();
+  // Resolve IndexedDB image references
+  const resolvedProducts = await getLocalProductsWithImages();
+  if (resolvedProducts.length > 0 || getLocalProducts().length === 0) {
+    products = resolvedProducts;
+  }
+
   if (isSupabaseReady()) {
     try {
-      const { getAllCategories, getAllProducts } = await import('/js/supabase.js');
+      const { getAllCategories } = await import('/js/supabase.js');
       const cloudCats = await getAllCategories();
-      const cloudProds = await getAllProducts();
-      if (cloudCats?.length) categories = cloudCats;
-      if (cloudProds?.length) products = cloudProds;
-      saveData();
+      if (cloudCats?.length) {
+        categories = cloudCats;
+        localStorage.setItem('voko_categories', JSON.stringify(categories));
+      }
     } catch (e) {
       console.info('Supabase init fallback to local data:', e);
     }
   }
   window.addEventListener('storage', (e) => {
-    if (e.key === 'voko_products' || e.key === 'voko_categories') {
+    if (e.key === 'voko_categories') {
       loadData();
       renderCategories();
       renderProducts(document.getElementById('inventory-search')?.value || '');
     }
   });
 
-  window.addEventListener('voko_products_updated', () => {
-    products = getLocalProducts();
-    renderProducts(document.getElementById('inventory-search')?.value || '');
-  });
+  // Note: voko_products_updated event removed to prevent circular overwrites.
+  // Inventory.js manages its own products array directly.
 
   // ── Mass Upload Modal Logic ──
   const massModal = document.getElementById('mass-upload-modal');
@@ -576,7 +583,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       createdCount++;
     }
 
-    saveData();
+    await saveDataAsync();
     renderProducts();
     closeMassModal();
 
