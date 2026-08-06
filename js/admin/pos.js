@@ -1,4 +1,5 @@
 import { formatPrice, SUPABASE_URL } from '/js/config.js';
+import { getLocalProducts, saveLocalProducts, getLocalSales, saveLocalSales } from './storage-helper.js';
 
 function isSupabaseReady() {
   return SUPABASE_URL && !SUPABASE_URL.includes('TU-PROYECTO') && SUPABASE_URL.startsWith('http');
@@ -22,38 +23,9 @@ function getProductImg(p) {
   return 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop';
 }
 
-const DEMO_PRODUCTS = [
-  { id: 'prod-1', nombre: 'Bolso Weekend', precio: 85000, stock: 5, badge: 'nuevo', destacado: true, activo: true, categoria_id: 'cat-1', descripcion: '' },
-  { id: 'prod-2', nombre: 'Bandolera Suede', precio: 45000, stock: 8, badge: 'limitado', destacado: true, activo: true, categoria_id: 'cat-2', descripcion: '' },
-  { id: 'prod-3', nombre: 'Riñonera Urban Brown', precio: 32000, stock: 12, badge: '', destacado: false, activo: true, categoria_id: 'cat-3', descripcion: '' },
-  { id: 'prod-4', nombre: 'Bolso XL Canvas', precio: 75000, stock: 3, badge: 'nuevo', destacado: true, activo: true, categoria_id: 'cat-1', descripcion: '' },
-  { id: 'prod-5', nombre: 'Morral Nomad', precio: 62000, stock: 6, badge: '', destacado: false, activo: true, categoria_id: 'cat-5', descripcion: '' },
-  { id: 'prod-6', nombre: 'Matero Premium Cuero', precio: 58000, stock: 10, badge: 'best-seller', destacado: true, activo: true, categoria_id: 'cat-6', descripcion: '' },
-  { id: 'prod-7', nombre: 'Cartera Minimal', precio: 92000, stock: 2, badge: '', destacado: false, activo: true, categoria_id: 'cat-4', descripcion: '' },
-  { id: 'prod-8', nombre: 'Sobre de Gala', precio: 28000, stock: 15, badge: 'elegante', destacado: false, activo: true, categoria_id: 'cat-7', descripcion: '' },
-];
-
-function getStoredProducts() {
-  const stored = localStorage.getItem('voko_products');
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    } catch {}
-  }
-  return [...DEMO_PRODUCTS];
-}
-
-let products = getStoredProducts();
+let products = getLocalProducts();
 let currentSale = [];
-let salesHistory = JSON.parse(localStorage.getItem('voko_sales_history') || '[]');
-
-// Heal any product image fields in localStorage
-products = products.map(p => {
-  const validImg = getProductImg(p);
-  return { ...p, imagen_url: validImg, imagen: validImg };
-});
-localStorage.setItem('voko_products', JSON.stringify(products));
+let salesHistory = getLocalSales();
 
 /**
  * Render visual grid of product cards with photos
@@ -61,6 +33,9 @@ localStorage.setItem('voko_products', JSON.stringify(products));
 function populateProducts(filterText = '') {
   const grid = document.getElementById('pos-products-grid');
   if (!grid) return;
+
+  // Always re-read fresh products from storage
+  products = getLocalProducts();
 
   const activeProducts = products.filter(p => p.activo !== false && p.stock > 0);
   const filtered = activeProducts.filter(p => 
@@ -243,7 +218,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // Re-read fresh products from localStorage to ensure up-to-date stock
-    products = getStoredProducts();
+    products = getLocalProducts();
 
     if (isSupabaseReady()) {
       try {
@@ -259,21 +234,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         const { getAllProducts } = await import('/js/supabase.js');
         products = await getAllProducts();
-        localStorage.setItem('voko_products', JSON.stringify(products));
+        saveLocalProducts(products);
       } catch (e) {
         console.warn('POS: Supabase sale save failed, saving locally:', e);
         currentSale.forEach(item => {
           const p = products.find(pr => pr.id === item.id || pr.nombre === item.nombre);
           if (p) p.stock = Math.max(0, (p.stock || 0) - item.cantidad);
         });
-        localStorage.setItem('voko_products', JSON.stringify(products));
+        saveLocalProducts(products);
       }
     } else {
       currentSale.forEach(item => {
         const p = products.find(pr => pr.id === item.id || pr.nombre === item.nombre);
         if (p) p.stock = Math.max(0, (p.stock || 0) - item.cantidad);
       });
-      localStorage.setItem('voko_products', JSON.stringify(products));
+      saveLocalProducts(products);
     }
 
     salesHistory.unshift({
@@ -290,13 +265,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         cantidad: item.cantidad
       }))
     });
-    localStorage.setItem('voko_sales_history', JSON.stringify(salesHistory));
+    saveLocalSales(salesHistory);
 
     alert('¡Venta registrada con éxito! El stock ha sido actualizado.');
     currentSale = [];
     populateProducts(searchInput?.value || '');
     renderSaleItems();
     renderHistory();
+  });
+
+  // Reactive Multi-tab Storage Listeners
+  window.addEventListener('storage', () => {
+    products = getLocalProducts();
+    salesHistory = getLocalSales();
+    populateProducts(searchInput?.value || '');
+    renderSaleItems();
+    renderHistory();
+  });
+
+  window.addEventListener('voko_products_updated', () => {
+    products = getLocalProducts();
+    populateProducts(searchInput?.value || '');
   });
 
   // Sidebar toggle

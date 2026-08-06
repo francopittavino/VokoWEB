@@ -95,6 +95,8 @@ function isSupabaseReady() {
   return SUPABASE_URL && !SUPABASE_URL.includes('TU-PROYECTO') && SUPABASE_URL.startsWith('http');
 }
 
+import { getLocalProducts, saveLocalProducts } from './admin/storage-helper.js';
+
 // ──────────────────────────────────────────
 // LOAD DATA (Instant local check + Supabase fallback)
 // ──────────────────────────────────────────
@@ -104,7 +106,7 @@ export async function loadProducts(filters = {}) {
   if (isSupabaseReady()) {
     try {
       allProducts = await getProducts(filters);
-      localStorage.setItem('voko_products', JSON.stringify(allProducts));
+      saveLocalProducts(allProducts);
       return filterProducts(allProducts);
     } catch (e) {
       console.warn('Could not connect to Supabase, trying local cache.', e);
@@ -112,20 +114,8 @@ export async function loadProducts(filters = {}) {
   }
 
   // Fallback: check localStorage (reflects Admin Panel creations)
-  const stored = localStorage.getItem('voko_products');
-  if (stored) {
-    try {
-      allProducts = JSON.parse(stored);
-      return filterProducts(allProducts);
-    } catch {
-      // Fallback if parsing fails
-    }
-  }
-
-  // Last resort: demo products
-  allProducts = [...DEMO_PRODUCTS];
-  localStorage.setItem('voko_products', JSON.stringify(allProducts));
-  return allProducts;
+  allProducts = getLocalProducts();
+  return filterProducts(allProducts);
 }
 
 export async function loadCategories() {

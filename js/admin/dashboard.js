@@ -1,4 +1,5 @@
 import { formatPrice, SUPABASE_URL } from '/js/config.js';
+import { getLocalProducts, saveLocalProducts, getLocalSales, saveLocalSales } from './storage-helper.js';
 
 const DEMO_IMAGES = {
   'prod-1': 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop',
@@ -61,7 +62,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (modalSaleIdLabel) modalSaleIdLabel.textContent = `ID: ${sale.id} • ${sale.fecha}`;
 
     // Generate items preview list
-    const products = JSON.parse(localStorage.getItem('voko_products') || '[]');
+    const products = getLocalProducts();
     const items = (sale.items && sale.items.length > 0) ? sale.items : (products.length > 0 ? [{
       nombre: products[0].nombre,
       cantidad: sale.itemsCount || 1,
@@ -91,8 +92,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   btnRestoreAndDelete?.addEventListener('click', () => {
     if (!currentSaleToDelete) return;
 
-    let products = JSON.parse(localStorage.getItem('voko_products') || '[]');
-    let salesHistory = JSON.parse(localStorage.getItem('voko_sales_history') || '[]');
+    let products = getLocalProducts();
+    let salesHistory = getLocalSales();
 
     const itemsToRestore = (currentSaleToDelete.items && currentSaleToDelete.items.length > 0) 
       ? currentSaleToDelete.items 
@@ -111,12 +112,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
 
-    // Save updated stock
-    localStorage.setItem('voko_products', JSON.stringify(products));
+    // Save updated stock & sales
+    saveLocalProducts(products);
 
-    // Remove sale from sales history
     salesHistory = salesHistory.filter(s => s.id !== currentSaleToDelete.id);
-    localStorage.setItem('voko_sales_history', JSON.stringify(salesHistory));
+    saveLocalSales(salesHistory);
 
     closeDeleteModal();
     initStats();
@@ -127,9 +127,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   btnOnlyDelete?.addEventListener('click', () => {
     if (!currentSaleToDelete) return;
 
-    let salesHistory = JSON.parse(localStorage.getItem('voko_sales_history') || '[]');
+    let salesHistory = getLocalSales();
     salesHistory = salesHistory.filter(s => s.id !== currentSaleToDelete.id);
-    localStorage.setItem('voko_sales_history', JSON.stringify(salesHistory));
+    saveLocalSales(salesHistory);
 
     closeDeleteModal();
     initStats();
@@ -144,8 +144,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     let lowStockCount = 0;
 
     // Check local storage items first
-    const products = JSON.parse(localStorage.getItem('voko_products') || '[]');
-    let salesHistory = JSON.parse(localStorage.getItem('voko_sales_history') || '[]');
+    const products = getLocalProducts();
+    let salesHistory = getLocalSales();
     const orders = JSON.parse(localStorage.getItem('voko_orders') || '[]');
 
     if (products.length > 0) {
@@ -299,4 +299,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   initStats();
+
+  // Multi-tab Reactive Sync
+  window.addEventListener('storage', () => {
+    initStats();
+  });
+
+  window.addEventListener('voko_products_updated', () => {
+    initStats();
+  });
+
+  window.addEventListener('voko_sales_updated', () => {
+    initStats();
+  });
 });

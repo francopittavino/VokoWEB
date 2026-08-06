@@ -1,4 +1,5 @@
 import { formatPrice, SUPABASE_URL } from '/js/config.js';
+import { getLocalProducts, saveLocalProducts } from './storage-helper.js';
 
 let categories = [
   { id: 'cat-1', nombre: 'Bolsos', orden: 1, activa: true },
@@ -12,44 +13,19 @@ let categories = [
   { id: 'cat-9', nombre: 'Billeteras', orden: 9, activa: true },
 ];
 
-const DEFAULT_PRODUCTS = [
-  { id: 'prod-1', nombre: 'Bolso Weekend', precio: 85000, stock: 5, badge: 'nuevo', destacado: true, activo: true, imagen_url: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop', categoria_id: 'cat-1', descripcion: '' },
-  { id: 'prod-2', nombre: 'Bandolera Suede', precio: 45000, stock: 8, badge: 'limitado', destacado: true, activo: true, imagen_url: 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=400&h=400&fit=crop', categoria_id: 'cat-2', descripcion: '' },
-  { id: 'prod-3', nombre: 'Riñonera Urban Brown', precio: 32000, stock: 12, badge: '', destacado: false, activo: true, imagen_url: 'https://images.unsplash.com/photo-1594223274512-ad4803739b7c?w=400&h=400&fit=crop', categoria_id: 'cat-3', descripcion: '' },
-  { id: 'prod-4', nombre: 'Bolso XL Canvas', precio: 75000, stock: 3, badge: 'nuevo', destacado: true, activo: true, imagen_url: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop', categoria_id: 'cat-1', descripcion: '' },
-  { id: 'prod-5', nombre: 'Morral Nomad', precio: 62000, stock: 6, badge: '', destacado: false, activo: true, imagen_url: 'https://images.unsplash.com/photo-1622560480605-d83c853bc5c3?w=400&h=400&fit=crop', categoria_id: 'cat-5', descripcion: '' },
-  { id: 'prod-6', nombre: 'Matero Premium Cuero', precio: 58000, stock: 10, badge: 'best-seller', destacado: true, activo: true, imagen_url: 'https://images.unsplash.com/photo-1611078489935-0cb964de46d6?w=400&h=400&fit=crop', categoria_id: 'cat-6', descripcion: '' },
-  { id: 'prod-7', nombre: 'Cartera Minimal', precio: 92000, stock: 2, badge: '', destacado: false, activo: true, imagen_url: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400&h=400&fit=crop', categoria_id: 'cat-4', descripcion: '' },
-  { id: 'prod-8', nombre: 'Sobre de Gala', precio: 28000, stock: 15, badge: 'elegante', destacado: false, activo: true, imagen_url: 'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=400&h=400&fit=crop', categoria_id: 'cat-7', descripcion: '' },
-];
-
-let products = [];
+let products = getLocalProducts();
 
 function loadData() {
   const storedCats = localStorage.getItem('voko_categories');
-  const storedProds = localStorage.getItem('voko_products');
   if (storedCats) {
     try { categories = JSON.parse(storedCats); } catch {}
   }
-  if (storedProds) {
-    try {
-      const parsed = JSON.parse(storedProds);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        products = parsed;
-        return;
-      }
-    } catch {}
-  }
-  products = [...DEFAULT_PRODUCTS];
-  localStorage.setItem('voko_products', JSON.stringify(products));
+  products = getLocalProducts();
 }
-
-// Load data immediately on module evaluation
-loadData();
 
 function saveData() {
   localStorage.setItem('voko_categories', JSON.stringify(categories));
-  localStorage.setItem('voko_products', JSON.stringify(products));
+  saveLocalProducts(products);
 }
 
 // Uses the imported SUPABASE_URL from config.js (which reads env vars correctly)
@@ -440,6 +416,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       console.info('Supabase init fallback to local data:', e);
     }
   }
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'voko_products' || e.key === 'voko_categories') {
+      loadData();
+      renderCategories();
+      renderProducts(document.getElementById('inventory-search')?.value || '');
+    }
+  });
+
+  window.addEventListener('voko_products_updated', () => {
+    products = getLocalProducts();
+    renderProducts(document.getElementById('inventory-search')?.value || '');
+  });
+
   renderCategories();
   renderProducts();
 });
