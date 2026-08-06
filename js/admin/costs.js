@@ -11,11 +11,11 @@ const DEFAULT_COST_SHEETS = [
     nombre: 'Bolso Weekend',
     margen: 60,
     insumos: [
-      { nombre: 'Cuerina Premium (1.2m)', costo: 18000 },
-      { nombre: 'Forro interno impermeable', costo: 4500 },
-      { nombre: 'Cierre YKK reforzado (40cm)', costo: 3200 },
-      { nombre: 'Hebillas y herrajes de bronce', costo: 6500 },
-      { nombre: 'Mano de Obra Artesanal', costo: 12000 },
+      { nombre: 'Cuerina Premium', cantidad: 1.5, costoUnitario: 12000, costo: 18000 },
+      { nombre: 'Forro interno impermeable', cantidad: 1.5, costoUnitario: 3000, costo: 4500 },
+      { nombre: 'Cierre YKK reforzado (40cm)', cantidad: 2, costoUnitario: 1600, costo: 3200 },
+      { nombre: 'Hebillas y herrajes de bronce', cantidad: 4, costoUnitario: 1625, costo: 6500 },
+      { nombre: 'Mano de Obra Artesanal', cantidad: 1, costoUnitario: 12000, costo: 12000 },
     ]
   },
   {
@@ -23,10 +23,10 @@ const DEFAULT_COST_SHEETS = [
     nombre: 'Bandolera Suede',
     margen: 55,
     insumos: [
-      { nombre: 'Cuerina Gamuzada Suede', costo: 9500 },
-      { nombre: 'Correa regulable', costo: 3800 },
-      { nombre: 'Mosquetones de metal', costo: 2700 },
-      { nombre: 'Mano de Obra Artesanal', costo: 7000 },
+      { nombre: 'Cuerina Gamuzada Suede', cantidad: 1, costoUnitario: 9500, costo: 9500 },
+      { nombre: 'Correa regulable', cantidad: 1, costoUnitario: 3800, costo: 3800 },
+      { nombre: 'Mosquetones de metal', cantidad: 2, costoUnitario: 1350, costo: 2700 },
+      { nombre: 'Mano de Obra Artesanal', cantidad: 1, costoUnitario: 7000, costo: 7000 },
     ]
   },
   {
@@ -34,10 +34,10 @@ const DEFAULT_COST_SHEETS = [
     nombre: 'Riñonera Urban Brown',
     margen: 50,
     insumos: [
-      { nombre: 'Cuerina Marrón Oscuro', costo: 6500 },
-      { nombre: 'Cierre diente de perro', costo: 2100 },
-      { nombre: 'Cinta mochilera y broche plástico', costo: 2400 },
-      { nombre: 'Mano de Obra', costo: 5000 },
+      { nombre: 'Cuerina Marrón Oscuro', cantidad: 0.8, costoUnitario: 8125, costo: 6500 },
+      { nombre: 'Cierre diente de perro', cantidad: 1, costoUnitario: 2100, costo: 2100 },
+      { nombre: 'Cinta mochilera y broche plástico', cantidad: 1, costoUnitario: 2400, costo: 2400 },
+      { nombre: 'Mano de Obra', cantidad: 1, costoUnitario: 5000, costo: 5000 },
     ]
   }
 ];
@@ -64,7 +64,12 @@ let activeEditingId = null;
 
 // Helpers to compute totals for a sheet
 function computeSheetTotals(sheet) {
-  const baseCost = (sheet.insumos || []).reduce((acc, item) => acc + (parseFloat(item.costo) || 0), 0);
+  const baseCost = (sheet.insumos || []).reduce((acc, item) => {
+    const qty = parseFloat(item.cantidad) || 1;
+    const unitCost = parseFloat(item.costoUnitario) || parseFloat(item.costo) || 0;
+    return acc + (qty * unitCost);
+  }, 0);
+
   const margin = parseFloat(sheet.margen) || 0;
   const profit = Math.round(baseCost * (margin / 100));
   const suggestedPrice = Math.round(baseCost + profit);
@@ -125,7 +130,11 @@ function renderTable(filterText = '') {
 
   tbody.innerHTML = filtered.map(s => {
     const totals = computeSheetTotals(s);
-    const insumosSummary = (s.insumos || []).map(i => `${i.nombre} (${formatPrice(i.costo)})`).join(', ');
+    const insumosSummary = (s.insumos || []).map(i => {
+      const q = i.cantidad || 1;
+      const sub = q * (i.costoUnitario || i.costo || 0);
+      return `${q}x ${i.nombre} (${formatPrice(sub)})`;
+    }).join(', ');
 
     return `
       <tr>
@@ -149,7 +158,7 @@ function renderTable(filterText = '') {
 }
 
 // Dynamic Row Rendering inside Modal Form
-function addItemRow(nombre = '', costo = '') {
+function addItemRow(nombre = '', cantidad = 1, costoUnitario = '') {
   const tbody = document.getElementById('items-rows-tbody');
   if (!tbody) return;
 
@@ -157,10 +166,16 @@ function addItemRow(nombre = '', costo = '') {
   tr.className = 'cost-item-row';
   tr.innerHTML = `
     <td style="padding: 4px;">
-      <input type="text" class="input-field item-name-input" placeholder="Ej: Cuerina / Cierre / Mano de obra" value="${nombre}" style="width: 100%;" required>
+      <input type="text" class="input-field item-name-input" placeholder="Ej: Cuerina / Cierre / Herrajes" value="${nombre}" style="width: 100%;" required>
     </td>
     <td style="padding: 4px;">
-      <input type="number" class="input-field item-cost-input" placeholder="0" min="0" value="${costo}" style="width: 100%; font-weight: bold;" required>
+      <input type="number" class="input-field item-qty-input" placeholder="1" min="0.01" step="0.1" value="${cantidad}" style="width: 100%; text-align: center;" required>
+    </td>
+    <td style="padding: 4px;">
+      <input type="number" class="input-field item-unitcost-input" placeholder="0" min="0" value="${costoUnitario}" style="width: 100%; font-weight: bold;" required>
+    </td>
+    <td style="padding: 4px; font-weight: bold; color: var(--color-primary); font-size: 13px;">
+      <span class="item-subtotal-span">$0</span>
     </td>
     <td style="padding: 4px; text-align: center;">
       <button type="button" class="btn-remove-row" style="background: none; border: none; color: var(--color-error); font-size: 16px; cursor: pointer; padding: 4px;">✕</button>
@@ -185,9 +200,16 @@ function updateModalCalculations() {
   let baseCost = 0;
 
   rows.forEach(r => {
-    const costInp = r.querySelector('.item-cost-input');
-    const val = parseFloat(costInp?.value) || 0;
-    baseCost += val;
+    const qtyInp = r.querySelector('.item-qty-input');
+    const unitInp = r.querySelector('.item-unitcost-input');
+    const subSpan = r.querySelector('.item-subtotal-span');
+
+    const qty = parseFloat(qtyInp?.value) || 0;
+    const unit = parseFloat(unitInp?.value) || 0;
+    const subtotal = qty * unit;
+
+    if (subSpan) subSpan.textContent = formatPrice(subtotal);
+    baseCost += subtotal;
   });
 
   const marginInp = document.getElementById('sheet-margin');
@@ -218,7 +240,7 @@ function openModal(sheet = null) {
     document.getElementById('sheet-margin').value = sheet.margen || 60;
 
     if (sheet.insumos && sheet.insumos.length > 0) {
-      sheet.insumos.forEach(i => addItemRow(i.nombre, i.costo));
+      sheet.insumos.forEach(i => addItemRow(i.nombre, i.cantidad || 1, i.costoUnitario || i.costo || ''));
     } else {
       addItemRow();
     }
@@ -228,9 +250,9 @@ function openModal(sheet = null) {
     document.getElementById('sheet-id').value = '';
     document.getElementById('sheet-product-name').value = '';
     document.getElementById('sheet-margin').value = 60;
-    addItemRow('Cuerina / Material Principal', '');
-    addItemRow('Herrajes / Cierre / Forro', '');
-    addItemRow('Mano de Obra Artesanal', '');
+    addItemRow('Cuerina / Material Principal', 1.5, 12000);
+    addItemRow('Hebillas / Herrajes de metal', 4, 1500);
+    addItemRow('Mano de Obra Artesanal', 1, 10000);
   }
 
   updateModalCalculations();
@@ -296,9 +318,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     rows.forEach(r => {
       const nameVal = r.querySelector('.item-name-input')?.value.trim();
-      const costVal = parseFloat(r.querySelector('.item-cost-input')?.value) || 0;
+      const qtyVal = parseFloat(r.querySelector('.item-qty-input')?.value) || 1;
+      const unitVal = parseFloat(r.querySelector('.item-unitcost-input')?.value) || 0;
       if (nameVal) {
-        insumos.push({ nombre: nameVal, costo: costVal });
+        insumos.push({
+          nombre: nameVal,
+          cantidad: qtyVal,
+          costoUnitario: unitVal,
+          costo: qtyVal * unitVal
+        });
       }
     });
 
