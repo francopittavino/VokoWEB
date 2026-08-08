@@ -24,8 +24,10 @@ Este archivo documenta el contexto, la arquitectura, el estado actual y el mapa 
 
 - **Frontend:** HTML5 y CSS3 sin frameworks (variables CSS, Grid, Flexbox, tokens estilo Material Design 3), JavaScript ES Modules.
 - **Build Tool:** Vite v6 (multi-page application, 11 entradas en `vite.config.js`).
-- **Base de Datos & Auth:** Supabase (PostgreSQL, Storage). **Todavía no está conectado** — ver §6.
-- **Estrategia Fallback:** mientras Supabase no tenga credenciales, la app funciona 100% con **`localStorage`** (metadata) e **IndexedDB** (fotos). Nada del JS debe romperse si la nube no responde.
+- **Base de Datos & Storage:** Supabase (PostgreSQL + Storage). **Conectado y en uso en producción** desde el 8/8/2026: los productos, sus fotos y las categorías viven ahí.
+- **Estrategia Fallback:** si Supabase no responde (o no hay credenciales en el entorno), la app cae a **`localStorage`** (metadata) e **IndexedDB** (fotos). Nada del JS debe romperse en ese caso.
+
+> ⚠️ **Cuando Supabase está activo, la nube manda.** Al cargar, el POS y el catálogo bajan los productos con `getAllProducts()` / `getProducts()` y **sobrescriben `voko_products` en localStorage**. Por lo tanto, **cualquier cambio que no llegue a Supabase se pierde en la próxima recarga**. Nunca dejar que un error de escritura contra la nube muera en un `console.warn`: hay que avisarle a quien esté usando el panel.
 - **Hosting / Deploy:** Vercel. Dev local en `http://localhost:3000` (`npm run dev`).
 
 ---
@@ -158,6 +160,20 @@ Este fue un bug real y silencioso: Inventario cargaba `products` al abrir la pá
 
 Además, `saveLocalProducts()` emite el evento `voko_products_updated` para que la pantalla actual se refresque, y el evento nativo `storage` cubre las otras pestañas. **Los listeners sólo pueden releer y re-renderizar, nunca escribir**, o se genera un bucle.
 
+### ⚠️ El esquema desplegado NO es igual al del script
+
+La instancia de producción se creó con una versión distinta de `supabase_schema.sql`. Diferencias confirmadas contra la base real:
+
+| Tabla | Realidad |
+| --- | --- |
+| `ventas` | tiene `tipo`, **no tiene `metodo_pago`** |
+| `productos` | tiene `updated_at` (el script original no lo definía) |
+| `pedidos` | **no tiene** `telefono` ni `fecha_limite`, que el formulario web sí guarda en local |
+
+Esto causó un bug serio: `createSale()` insertaba `metodo_pago` → error `PGRST204` → la excepción abortaba la función **antes** del descuento de stock, que vivía al final. El `console.warn` lo hacía invisible y el stock volvía atrás en cada recarga.
+
+**Lecciones aplicadas:** el descuento de stock (`decreaseRemoteStock`) va **separado** del registro de la venta, y los errores de sincronización se le muestran a quien usa el panel. `supabase_schema.sql` tiene ahora un bloque de `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` idempotente para alinear bases viejas. **Antes de agregar una columna al código, verificá que exista en la base real.**
+
 ### Devolver stock al borrar una venta
 Sólo se puede reponer lo que la venta haya guardado en su array `items`. Las ventas viejas sin ese detalle muestran el botón deshabilitado: **nunca inventar el producto** (el código anterior usaba `products[0]` como fallback y le sumaba stock a un producto al azar).
 
@@ -196,10 +212,15 @@ Pegar el resultado en `VITE_ADMIN_PASSWORD_HASH` (local y en Vercel). **La contr
 
 ## 🚨 7. Pendientes / Backlog
 
-### ☁️ 1. Conexión a la instancia real de Supabase
-- Ejecutar `supabase_schema.sql` en el SQL Editor de Supabase.
-- Cargar `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` como variables de entorno en Vercel (y en un `.env` local).
-- Las políticas RLS del script son de acceso completo con la anon key: **antes de producción** hay que restringir la escritura a usuarios autenticados.
+### ☁️ 1. Endurecer Supabase (ya está conectado)
+- Las políticas RLS son de **acceso completo con la anon key**, que es pública y viaja en el bundle: hoy cualquiera con la URL del sitio puede escribir en las tablas. Restringir la escritura a usuarios autenticados es el pendiente de seguridad más importante.
+- `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` ya están cargadas en Vercel. Para trabajar en local hay que ponerlas también en el `.env`, o el entorno local corre en modo `localStorage` y **no reproduce los bugs de la nube**.
+
+### 🔄 2. Datos que todavía NO se sincronizan
+Siguen siendo locales por dispositivo, así que no se ven desde otro equipo:
+- **Historial de ventas del dashboard** — se lee de `getLocalSales()`; la tabla `ventas` se escribe pero nunca se lee para mostrar.
+- **Pedidos de `personalizado.html`** — se guardan en `voko_orders`; la tabla `pedidos` existe y está vacía.
+- **Fichas de costos** — `voko_product_costs`, sin tabla en la nube.
 
 ### 🖼️ 2. Fotos reales de Voko
 - Reemplazar las imágenes de demo (Unsplash) por fotos reales de los productos y del taller. Las semillas están en `INITIAL_DEMO_PRODUCTS`.

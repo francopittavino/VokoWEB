@@ -59,10 +59,13 @@ CREATE TABLE IF NOT EXISTS public.productos (
 );
 
 -- 3. Tabla de Ventas (Punto de Venta Presencial)
+-- OJO: la instancia en producción se creó con `tipo` y SIN `metodo_pago`.
+-- Este script refleja ese esquema real. `CREATE TABLE IF NOT EXISTS` no altera
+-- tablas existentes, así que más abajo hay un bloque de migración idempotente.
 CREATE TABLE IF NOT EXISTS public.ventas (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     total NUMERIC(12,2) NOT NULL,
-    metodo_pago TEXT DEFAULT 'Efectivo',
+    tipo TEXT DEFAULT 'POS',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -85,6 +88,18 @@ CREATE TABLE IF NOT EXISTS public.pedidos (
     estado TEXT DEFAULT 'Pendiente',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- ========================================================
+-- MIGRACIONES IDEMPOTENTES
+-- ========================================================
+-- `CREATE TABLE IF NOT EXISTS` no toca las tablas que ya existen, así que las
+-- columnas agregadas después del despliegue inicial van acá. Es seguro
+-- re-ejecutar este bloque cuantas veces haga falta.
+ALTER TABLE public.productos ADD COLUMN IF NOT EXISTS stock INT NOT NULL DEFAULT 0;
+ALTER TABLE public.productos ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now());
+ALTER TABLE public.ventas ADD COLUMN IF NOT EXISTS tipo TEXT DEFAULT 'POS';
+ALTER TABLE public.pedidos ADD COLUMN IF NOT EXISTS telefono TEXT;
+ALTER TABLE public.pedidos ADD COLUMN IF NOT EXISTS fecha_limite TEXT;
 
 -- ========================================================
 -- DATOS INICIALES (Semilla de Categorías)

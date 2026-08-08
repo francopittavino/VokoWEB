@@ -194,22 +194,69 @@ export async function updateStock(id, newStock) {
 // SALES (POS)
 // ──────────────────────────────────────────
 
+/**
+ * Descuenta el stock en la nube, producto por producto.
+ *
+ * Va SEPARADO de createSale a propósito: antes el descuento vivía al final de
+ * createSale, así que cualquier error al registrar la venta (por ejemplo, una
+ * columna que no existe en la tabla) abortaba la función y el stock nunca se
+ * actualizaba, en silencio. El inventario es lo crítico: se actualiza primero
+ * y por su cuenta.
+ *
+ * @param {Array<{producto_id: string, cantidad: number}>} items
+ * @returns {Promise<Array<{id: string, motivo: string}>>} los que fallaron
+ */
+export async function decreaseRemoteStock(items) {
+  const client = getClient();
+  const failed = [];
+
+  for (const item of items) {
+    try {
+      const { data: product, error: readError } = await client
+        .from('productos')
+        .select('stock')
+        .eq('id', item.producto_id)
+        .single();
+
+      if (readError || !product) {
+        failed.push({ id: item.producto_id, motivo: readError?.message || 'no encontrado' });
+        continue;
+      }
+
+      const nuevoStock = Math.max(0, (Number(product.stock) || 0) - (Number(item.cantidad) || 0));
+
+      const { error: writeError } = await client
+        .from('productos')
+        .update({ stock: nuevoStock })
+        .eq('id', item.producto_id);
+
+      if (writeError) failed.push({ id: item.producto_id, motivo: writeError.message });
+    } catch (e) {
+      failed.push({ id: item.producto_id, motivo: e?.message || String(e) });
+    }
+  }
+
+  return failed;
+}
+
+/**
+ * Registra la venta y su detalle. NO toca el stock: de eso se ocupa
+ * decreaseRemoteStock(), que se llama por separado.
+ */
 export async function createSale(sale) {
   const client = getClient();
 
-  // Insert the sale
+  // Sólo columnas que existen seguro en `ventas` (id, total, tipo, created_at).
+  // No se envía `metodo_pago`: no está en la tabla desplegada y hacía fallar
+  // el insert entero con PGRST204.
   const { data: saleData, error: saleError } = await client
     .from('ventas')
-    .insert({
-      total: sale.total,
-      metodo_pago: sale.metodo_pago || 'Efectivo',
-    })
+    .insert({ total: sale.total })
     .select()
     .single();
 
   if (saleError) throw saleError;
 
-  // Insert sale items
   const items = sale.items.map((item) => ({
     venta_id: saleData.id,
     producto_id: item.producto_id,
@@ -222,25 +269,6 @@ export async function createSale(sale) {
     .insert(items);
 
   if (itemsError) throw itemsError;
-
-  // Update stock for each product
-  for (const item of sale.items) {
-    const { data: product } = await client
-      .from('productos')
-      .select('stock')
-      .eq('id', item.producto_id)
-      .single();
-
-    if (product) {
-      await client
-        .from('productos')
-        .update({
-          stock: Math.max(0, product.stock - item.cantidad),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', item.producto_id);
-    }
-  }
 
   return saleData;
 }

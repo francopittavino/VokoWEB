@@ -228,27 +228,48 @@ document.addEventListener('DOMContentLoaded', async () => {
       total += item.precio * item.cantidad;
     });
 
+    const confirmBtn = document.getElementById('pos-confirm-btn');
+    confirmBtn.disabled = true;
+    const textoOriginal = confirmBtn.innerHTML;
+    confirmBtn.textContent = 'Registrando...';
+
+    const itemsVenta = currentSale.map(item => ({
+      producto_id: item.id,
+      cantidad: item.cantidad,
+      precio_unitario: item.precio,
+    }));
+
+    // Problemas al sincronizar con la nube. Se avisan al final: si el stock no
+    // bajó en Supabase, al recargar volvería al valor viejo y se podría vender
+    // algo que ya no hay. Antes esto moría en un console.warn invisible.
+    const problemas = [];
+
     if (isSupabaseReady()) {
+      const { decreaseRemoteStock, createSale } = await import('/js/supabase.js');
+
+      // 1) El stock primero: es lo crítico. Va aparte del registro de la venta
+      //    para que un fallo al guardar la venta no deje el inventario mal.
       try {
-        const { createSale } = await import('/js/supabase.js');
-        await createSale({
-          total,
-          metodo_pago: 'Efectivo',
-          items: currentSale.map(item => ({
-            producto_id: item.id,
-            cantidad: item.cantidad,
-            precio_unitario: item.precio,
-          })),
+        const fallidos = await decreaseRemoteStock(itemsVenta);
+        fallidos.forEach(f => {
+          const nombre = currentSale.find(i => String(i.id) === String(f.id))?.nombre || f.id;
+          problemas.push(`No se pudo descontar el stock de "${nombre}" (${f.motivo}).`);
         });
       } catch (e) {
-        console.warn('POS: Supabase sale save failed:', e);
+        problemas.push(`No se pudo actualizar el stock en la nube: ${e?.message || e}`);
+      }
+
+      // 2) El registro de la venta, para las métricas del dashboard.
+      try {
+        await createSale({ total, items: itemsVenta });
+      } catch (e) {
+        problemas.push(`La venta no quedó registrada en la nube: ${e?.message || e}`);
       }
     }
 
     // Descontar el stock local de cada producto vendido.
     // decreaseLocalStock relee el estado actual y toca sólo estos productos,
     // así no pisa cambios hechos desde Inventario en otra pestaña.
-    // (La rama de Supabase ya lo descuenta del lado del servidor en createSale.)
     products = decreaseLocalStock(currentSale);
 
     const now = new Date();
@@ -269,11 +290,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     saveLocalSales(salesHistory);
 
-    alert('¡Venta registrada con éxito! El stock ha sido actualizado.');
+    confirmBtn.innerHTML = textoOriginal;
     currentSale = [];
     populateProducts(searchInput?.value || '');
     renderSaleItems();
     renderHistory();
+
+    if (problemas.length === 0) {
+      alert('¡Venta registrada con éxito! El stock ha sido actualizado.');
+    } else {
+      alert(
+        '⚠️ La venta se guardó en este dispositivo, pero hubo problemas al sincronizar:\n\n• ' +
+        problemas.join('\n• ') +
+        '\n\nRevisá el stock en Inventario antes de seguir vendiendo.'
+      );
+    }
   });
 
   // Reactive Multi-tab Storage Listeners

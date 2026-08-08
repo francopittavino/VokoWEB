@@ -83,7 +83,14 @@ async function setProductStock(id, newStock) {
       const { updateProduct } = await import('/js/supabase.js');
       await updateProduct(id, { stock });
     } catch (e) {
-      console.warn('No se pudo actualizar el stock en Supabase:', e);
+      // Avisamos en vez de tragarnos el error: si no llegó a la nube, el valor
+      // vuelve atrás en cuanto se recargue la página o se abra en otro equipo.
+      console.error('No se pudo actualizar el stock en Supabase:', e);
+      alert(
+        `⚠️ El stock de "${updated.nombre}" se guardó en este dispositivo, pero no se pudo sincronizar con la nube.\n\n` +
+        `Motivo: ${e?.message || e}\n\n` +
+        `Al recargar, el valor va a volver al anterior. Revisá la conexión y probá de nuevo.`
+      );
     }
   }
 
