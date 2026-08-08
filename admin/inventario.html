@@ -82,7 +82,7 @@
                 <input type="number" class="input-field" id="prod-price" placeholder="85000" min="0" required>
               </div>
               <div class="input-group">
-                <label class="input-label" for="prod-stock">Stock (unidades disponibles)</label>
+                <label class="input-label" for="prod-stock">Stock inicial (en 0 no se muestra en la tienda)</label>
                 <input type="number" class="input-field" id="prod-stock" placeholder="1" min="0" step="1" value="1" required>
               </div>
             </div>
@@ -120,11 +120,6 @@
                 <input type="checkbox" id="prod-featured">
                 <span class="toggle__track"></span>
                 <span class="toggle__label">Destacado</span>
-              </label>
-              <label class="toggle">
-                <input type="checkbox" id="prod-active" checked>
-                <span class="toggle__track"></span>
-                <span class="toggle__label">Activo</span>
               </label>
             </div>
             <div class="admin-form-actions">
@@ -191,9 +186,8 @@
                 <th>Producto</th>
                 <th>Categoría</th>
                 <th>Precio</th>
-                <th>Stock</th>
+                <th>Stock <span style="font-weight: 400; opacity: 0.7;">(en 0 se oculta de la tienda)</span></th>
                 <th>Badge</th>
-                <th>Estado en Tienda (Mostrar/Ocultar)</th>
                 <th>Acciones</th>
               </tr>
             </thead>

@@ -94,10 +94,10 @@ export async function loadFeaturedProducts(limit = 4) {
 // ──────────────────────────────────────────
 
 function filterProducts(products) {
-  // Un producto se publica sólo si está marcado como visible Y tiene stock.
-  // El stock lo descuenta el Punto de Venta al cobrar: la web nunca lo toca,
+  // El stock es lo ÚNICO que decide si un producto se publica: en 0 desaparece
+  // de la tienda. Lo descuenta el Punto de Venta al cobrar; la web nunca lo toca,
   // porque las ventas online se cierran por WhatsApp y se cargan a mano en el POS.
-  let filtered = products.filter((p) => p.activo !== false && getStock(p) > 0);
+  let filtered = products.filter((p) => getStock(p) > 0);
 
   // Category filter
   if (currentFilters.categoryId) {

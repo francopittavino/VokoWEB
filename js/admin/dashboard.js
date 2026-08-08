@@ -7,6 +7,7 @@ import {
   getProductImg,
   getStock,
   isFromToday,
+  increaseLocalStock,
   PLACEHOLDER_IMAGE,
 } from './storage-helper.js';
 
@@ -29,7 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // El botón de cerrar sesión lo cablea auth-guard.js para todas las páginas.
 
   // Show user status
-  const email = sessionStorage.getItem('voko_admin_email');
+  const email = localStorage.getItem('voko_admin_email');
   if (email && document.getElementById('admin-email')) {
     document.getElementById('admin-email').textContent = email;
   }
@@ -88,41 +89,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const itemsToRestore = Array.isArray(currentSaleToDelete.items) ? currentSaleToDelete.items : [];
     if (itemsToRestore.length === 0) return;
 
-    let products = getLocalProducts();
-    let salesHistory = getLocalSales();
+    // Escritura quirúrgica: relee el estado actual y suma sólo estas unidades.
+    const { restored, notFound } = increaseLocalStock(itemsToRestore);
 
-    let restoredUnits = 0;
-    const notFound = [];
-
-    itemsToRestore.forEach(item => {
-      const itemId = item.id || item.producto_id;
-      const itemName = (item.nombre || item.name || '').toLowerCase().trim();
-      const p = products.find(prod =>
-        (itemId && String(prod.id) === String(itemId)) ||
-        (itemName && prod.nombre.toLowerCase().trim() === itemName)
-      );
-
-      const qty = parseInt(item.cantidad, 10) || 1;
-
-      if (p) {
-        p.stock = getStock(p) + qty;
-        restoredUnits += qty;
-      } else {
-        // El producto fue eliminado del inventario después de la venta.
-        notFound.push(`${qty}x ${item.nombre || 'producto sin nombre'}`);
-      }
-    });
-
-    // Save updated stock & sales
-    saveLocalProducts(products);
-
-    salesHistory = salesHistory.filter(s => s.id !== currentSaleToDelete.id);
+    const salesHistory = getLocalSales().filter(s => s.id !== currentSaleToDelete.id);
     saveLocalSales(salesHistory);
 
     closeDeleteModal();
     initStats();
 
-    let mensaje = `✅ Venta eliminada. Se devolvieron ${restoredUnits} unidad${restoredUnits === 1 ? '' : 'es'} al stock.`;
+    let mensaje = `✅ Venta eliminada. Se devolvieron ${restored} unidad${restored === 1 ? '' : 'es'} al stock.`;
     if (notFound.length) {
       mensaje += `\n\n⚠️ No se pudo devolver (ya no están en el inventario):\n• ${notFound.join('\n• ')}`;
     }
@@ -150,10 +126,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const orders = JSON.parse(localStorage.getItem('voko_orders') || '[]');
 
     let totalProducts = products.length;
-    // "Visibles" = lo que realmente se ve en la tienda: marcado como visible Y con stock.
-    let visibleCount = products.filter((p) => p.activo !== false && getStock(p) > 0).length;
+    // "Visibles" = lo que realmente se ve en la tienda: todo lo que tiene stock.
+    let visibleCount = products.filter((p) => getStock(p) > 0).length;
     let lowStockCount = products.filter(
-      (p) => p.activo !== false && getStock(p) <= APP_CONFIG.lowStockThreshold
+      (p) => getStock(p) <= APP_CONFIG.lowStockThreshold
     ).length;
 
     // "Hoy" es hoy: filtramos por fecha en lugar de sumar todo el historial.

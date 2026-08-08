@@ -110,6 +110,9 @@ Helpers que hay que reutilizar en lugar de reescribir:
 | Helper | Para qué sirve |
 | --- | --- |
 | `getLocalProducts()` / `saveLocalProducts()` | Leer y escribir productos (metadata) |
+| `updateLocalProduct(id, cambios)` | ⭐ Modificar **un** producto sin pisar el resto |
+| `addLocalProduct()` / `removeLocalProduct(id)` | Alta y baja puntual |
+| `decreaseLocalStock(items)` / `increaseLocalStock(items)` | Descontar (venta) y devolver (anulación) stock |
 | `getLocalProductsWithImages()` / `saveLocalProductsAsync()` | Igual, resolviendo las fotos guardadas en IndexedDB |
 | `getProductImg(p)` | Imagen a mostrar (acepta URL, data URL, y cae en `PLACEHOLDER_IMAGE`) |
 | `getStock(p)` | Stock normalizado a entero ≥ 0 |
@@ -135,18 +138,25 @@ Todo producto tiene `stock` (entero ≥ 0). **La regla central: el stock sólo b
 
 ### Qué se publica en la tienda
 
-`filterProducts()` en `js/products.js` publica un producto sólo si cumple **las dos** condiciones:
+**El stock es lo único que decide la visibilidad.** `filterProducts()` en `js/products.js`:
 
 ```js
-p.activo !== false && getStock(p) > 0
+products.filter((p) => getStock(p) > 0)
 ```
 
-- `activo` es el toggle **Mostrar/Ocultar** del inventario (decisión manual).
-- `stock > 0`: un producto agotado **desaparece del catálogo**, no se muestra deshabilitado.
+Un producto en 0 **desaparece del catálogo** (no se muestra deshabilitado). No hay toggle de Mostrar/Ocultar: para sacar algo de la tienda se le pone stock 0 desde Inventario.
 
-Por eso el inventario distingue tres estados en la columna de la tienda: `🟢 Visible`, `⚪ Oculto` (toggle apagado) y `🔴 Oculto: sin stock`.
+> El campo `activo` sigue existiendo en el modelo y se escribe siempre en `true`, porque la rama de Supabase (`getProducts`) filtra por él. **No volver a exponerlo en la UI**: se quitó a propósito para que haya un solo control.
 
-El dashboard cuenta como *stock bajo* los productos visibles con `APP_CONFIG.lowStockThreshold` (3) unidades o menos.
+El stock se edita **en línea** desde la tabla de Inventario, con un contador `− N +` (clase `.stock-editor`); no hace falta abrir el formulario de edición. El dashboard cuenta como *stock bajo* los productos con `APP_CONFIG.lowStockThreshold` (3) unidades o menos.
+
+### ⚠️ Nunca guardar el array completo de productos desde una copia en memoria
+
+Este fue un bug real y silencioso: Inventario cargaba `products` al abrir la página y cualquier acción posterior escribía **todo** el array. Si mientras tanto el POS había descontado stock, ese guardado lo revivía — el stock volvía al valor viejo al recargar.
+
+**Regla:** para tocar productos usar siempre las funciones quirúrgicas de la tabla de arriba, que releen el estado actual y modifican sólo lo necesario. `saveLocalProducts(arrayCompleto)` queda reservado para cuando el array acaba de leerse de `getLocalProducts()` en la misma operación.
+
+Además, `saveLocalProducts()` emite el evento `voko_products_updated` para que la pantalla actual se refresque, y el evento nativo `storage` cubre las otras pestañas. **Los listeners sólo pueden releer y re-renderizar, nunca escribir**, o se genera un bucle.
 
 ### Devolver stock al borrar una venta
 Sólo se puede reponer lo que la venta haya guardado en su array `items`. Las ventas viejas sin ese detalle muestran el botón deshabilitado: **nunca inventar el producto** (el código anterior usaba `products[0]` como fallback y le sumaba stock a un producto al azar).
@@ -159,7 +169,7 @@ Las ventas y los pedidos nuevos guardan `timestamp` (epoch ms) además del `fech
 ## 🔐 6. Acceso al Panel
 
 - El login (`admin/index.html`) compara el **SHA-256** de lo tipeado contra `ADMIN_PASSWORD_HASH`, que **sale exclusivamente de la variable de entorno `VITE_ADMIN_PASSWORD_HASH`**. El repositorio es público: en el código no hay contraseña ni en texto plano ni hasheada.
-- La sesión se guarda en `sessionStorage` con vencimiento de 12 horas.
+- La sesión se guarda en **`localStorage`** con vencimiento de 12 horas. Se usa `localStorage` y no `sessionStorage` a propósito: este último es por pestaña, y obligaba a loguearse de nuevo al abrir el POS y el Inventario a la vez. "Cerrar Sesión" la borra en el acto.
 - Cada página de `/admin` importa `js/admin/auth-guard.js` desde el `<head>`; sin sesión válida redirige al login y además cablea los botones "Cerrar Sesión".
 - **Falla en cerrado:** si la variable no está cargada, `isAdminPasswordConfigured()` da `false`, el botón de ingreso queda deshabilitado y el login avisa que falta la configuración (en vez de decir "contraseña incorrecta").
 

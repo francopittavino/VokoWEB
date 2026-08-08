@@ -960,3 +960,84 @@
   font-size: var(--fs-body-sm);
   color: var(--color-primary);
 }
+
+/* ════════════════════════════════════════════
+   CONTADOR DE STOCK EDITABLE (Inventario)
+   ════════════════════════════════════════════ */
+.stock-editor {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-full);
+  background-color: var(--color-surface-container-low);
+}
+
+.stock-editor__btn {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-full);
+  background-color: var(--color-surface-container-high);
+  color: var(--color-on-surface);
+  font-size: 16px;
+  font-weight: var(--fw-bold);
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.stock-editor__btn:hover {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.stock-editor__btn:active {
+  transform: scale(0.92);
+}
+
+.stock-editor__input {
+  width: 46px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-on-surface);
+  font-family: var(--font-body);
+  font-size: var(--fs-body-lg);
+  font-weight: var(--fw-bold);
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+/* Ocultamos las flechitas nativas: ya tenemos los botones − / + */
+.stock-editor__input::-webkit-outer-spin-button,
+.stock-editor__input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.stock-editor__input:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Semáforo según el nivel de stock */
+.stock-editor--ok .stock-editor__input { color: var(--color-success); }
+.stock-editor--bajo .stock-editor__input { color: var(--color-warning); }
+.stock-editor--agotado .stock-editor__input { color: var(--color-error); }
+.stock-editor--agotado { border-color: var(--color-error); }
+
+.stock-editor__hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--color-on-surface-variant);
+}
+
+.stock-editor--agotado + .stock-editor__hint {
+  color: var(--color-error);
+  font-weight: var(--fw-semibold);
+}

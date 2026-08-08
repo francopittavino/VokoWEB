@@ -16,7 +16,8 @@ export const ADMIN_EMAIL = import.meta.env?.VITE_ADMIN_EMAIL || 'admin@vokoacces
 // Sin esta variable el login rechaza todo — ver `.env.example`.
 export const ADMIN_PASSWORD_HASH = import.meta.env?.VITE_ADMIN_PASSWORD_HASH || '';
 
-// Clave y duración de la sesión del panel (se guarda en sessionStorage).
+// Clave y duración de la sesión del panel (se guarda en localStorage, para que
+// valga en todas las pestañas a la vez — ver el comentario en js/admin/auth.js).
 export const ADMIN_SESSION_KEY = 'voko_admin';
 export const ADMIN_SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 horas
 

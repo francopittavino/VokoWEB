@@ -7,6 +7,8 @@ import {
   deleteImageFromIDB,
   getProductImg,
   getStock,
+  updateLocalProduct,
+  removeLocalProduct,
   INITIAL_DEMO_CATEGORIES,
 } from './storage-helper.js';
 
@@ -22,9 +24,10 @@ function loadData() {
   products = getLocalProducts();
 }
 
+// Sólo categorías: guardar además el array de productos desde una copia en
+// memoria pisaría el stock descontado por el Punto de Venta.
 function saveData() {
   localStorage.setItem('voko_categories', JSON.stringify(categories));
-  saveLocalProducts(products);
 }
 
 async function saveDataAsync() {
@@ -61,26 +64,31 @@ function renderCategories() {
   if (massSelect) massSelect.innerHTML = catOptions;
 }
 
-window.toggleProductActive = async (id, isActive) => {
-  const p = products.find(pr => String(pr.id) === String(id));
-  if (!p) return;
+/**
+ * Fija el stock de un producto desde la tabla de inventario.
+ * Escribe de forma quirúrgica: relee el estado actual y toca sólo este
+ * producto, para no pisar el stock que el POS pudo haber descontado.
+ */
+async function setProductStock(id, newStock) {
+  const stock = Math.max(0, parseInt(newStock, 10) || 0);
 
-  p.activo = isActive;
+  const updated = updateLocalProduct(id, { stock });
+  if (!updated) return null;
 
-  if (isSupabaseReady()) {
+  // Mantenemos sincronizada la copia en memoria de esta pantalla
+  products = getLocalProducts();
+
+  if (isSupabaseReady() && !String(id).startsWith('prod-')) {
     try {
       const { updateProduct } = await import('/js/supabase.js');
-      if (!id.startsWith('prod-')) {
-        await updateProduct(id, { activo: isActive });
-      }
+      await updateProduct(id, { stock });
     } catch (e) {
-      console.warn('Could not update active status in Supabase:', e);
+      console.warn('No se pudo actualizar el stock en Supabase:', e);
     }
   }
 
-  saveData();
-  renderProducts(document.getElementById('inventory-search')?.value || '');
-};
+  return updated;
+}
 
 function renderProducts(filter = '') {
   const tbody = document.getElementById('products-tbody');
@@ -91,13 +99,8 @@ function renderProducts(filter = '') {
 
   tbody.innerHTML = filtered.map(p => {
     const cat = categories.find(c => c.id === p.categoria_id);
-    const isActive = p.activo !== false;
     const stock = getStock(p);
-    const stockColor = stock === 0
-      ? 'var(--color-error)'
-      : stock <= APP_CONFIG.lowStockThreshold
-        ? 'var(--color-warning)'
-        : 'var(--color-success)';
+    const stockLevel = stock === 0 ? 'agotado' : stock <= APP_CONFIG.lowStockThreshold ? 'bajo' : 'ok';
 
     return `
     <tr>
@@ -113,21 +116,15 @@ function renderProducts(filter = '') {
       <td>${cat?.nombre || '—'}</td>
       <td>${formatPrice(p.precio)}</td>
       <td>
-        <strong style="color: ${stockColor};">${stock}</strong>
-        ${stock === 0 ? '<br><span style="font-size:11px;color:var(--color-error);">Sin stock</span>' : ''}
+        <div class="stock-editor stock-editor--${stockLevel}">
+          <button type="button" class="stock-editor__btn" data-stock-step="-1" data-id="${p.id}" aria-label="Restar una unidad de ${p.nombre}">−</button>
+          <input type="number" class="stock-editor__input" value="${stock}" min="0" step="1"
+                 data-stock-input data-id="${p.id}" aria-label="Stock de ${p.nombre}">
+          <button type="button" class="stock-editor__btn" data-stock-step="1" data-id="${p.id}" aria-label="Sumar una unidad de ${p.nombre}">+</button>
+        </div>
+        <span class="stock-editor__hint">${stock === 0 ? 'Oculto en la tienda' : 'En la tienda'}</span>
       </td>
       <td>${p.badge ? `<span class="product-card__badge product-card__badge--${p.badge}" style="position:static;">${p.badge}</span>` : '—'}</td>
-      <td>
-        <div style="display: inline-flex; align-items: center; gap: 8px;">
-          <label class="toggle" style="margin: 0; cursor: pointer;">
-            <input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleProductActive('${p.id}', this.checked)">
-            <span class="toggle__track"></span>
-          </label>
-          <span class="status-pill ${isActive && stock > 0 ? 'status-pill--active' : 'status-pill--inactive'}">
-            ${!isActive ? '⚪ Oculto' : stock > 0 ? '🟢 Visible' : '🔴 Oculto: sin stock'}
-          </span>
-        </div>
-      </td>
       <td class="admin-table__actions">
         <button class="admin-table__action-btn" onclick="editProduct('${p.id}')" title="Editar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
         <button class="admin-table__action-btn admin-table__action-btn--delete" onclick="deleteProduct('${p.id}')" title="Eliminar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
@@ -184,7 +181,6 @@ window.editProduct = (id) => {
   resetImagePreview(p.imagen_url || '');
   document.getElementById('prod-description').value = p.descripcion || '';
   document.getElementById('prod-featured').checked = p.destacado;
-  document.getElementById('prod-active').checked = p.activo;
   document.getElementById('form-title').textContent = 'Editar Producto';
   const formCard = document.getElementById('product-form-card');
   if (formCard) {
@@ -196,8 +192,10 @@ window.editProduct = (id) => {
 window.deleteProduct = async (id) => {
   if (!confirm('¿Eliminar este producto?')) return;
 
-  // Always delete from in-memory array first
-  products = products.filter(p => String(p.id) !== String(id));
+  // Borrado quirúrgico: relee el estado actual y saca sólo este producto,
+  // sin pisar cambios hechos desde el Punto de Venta.
+  removeLocalProduct(id);
+  products = getLocalProducts();
 
   // Remove image from IndexedDB
   deleteImageFromIDB(id);
@@ -212,8 +210,6 @@ window.deleteProduct = async (id) => {
     }
   }
 
-  // Save updated list
-  await saveDataAsync();
   renderProducts(document.getElementById('inventory-search')?.value || '');
 };
 
@@ -347,7 +343,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-new-product')?.addEventListener('click', () => {
     document.getElementById('product-form')?.reset();
     document.getElementById('product-id').value = '';
-    document.getElementById('prod-active').checked = true;
     document.getElementById('prod-stock').value = 1;
     resetImagePreview('');
     document.getElementById('form-title').textContent = 'Nuevo Producto';
@@ -392,7 +387,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       imagen_url: imageUrl,
       descripcion: document.getElementById('prod-description').value || '',
       destacado: document.getElementById('prod-featured').checked,
-      activo: document.getElementById('prod-active').checked,
+      // `activo` ya no se maneja a mano: la visibilidad en la tienda depende
+      // sólo del stock. Se deja en true para la rama de Supabase, que filtra por él.
+      activo: true,
     };
 
     let savedToCloud = false;
@@ -416,17 +413,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     if (!savedToCloud) {
-      // Local-only fallback
+      // Guardado local quirúrgico: releemos el estado fresco para no revivir
+      // el stock que el POS haya descontado mientras el formulario estaba abierto.
+      const fresh = getLocalProducts();
       if (id) {
-        const idx = products.findIndex(p => p.id === id);
-        if (idx >= 0) products[idx] = { ...products[idx], ...productData };
+        const idx = fresh.findIndex(p => String(p.id) === String(id));
+        if (idx >= 0) fresh[idx] = { ...fresh[idx], ...productData };
       } else {
-        products.push({ id: 'prod-' + Date.now(), ...productData });
+        fresh.push({ id: 'prod-' + Date.now(), ...productData });
       }
+      products = fresh;
     }
 
     await saveDataAsync();
-    renderProducts();
+    products = getLocalProducts();
+    renderProducts(document.getElementById('inventory-search')?.value || '');
     if (formCard) formCard.style.display = 'none';
     if (saveBtn) {
       saveBtn.disabled = false;
@@ -436,6 +437,73 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('inventory-search')?.addEventListener('input', (e) => {
     renderProducts(e.target.value);
+  });
+
+  // ── Contador de stock editable en la tabla ──
+  const productsTbody = document.getElementById('products-tbody');
+
+  // Mientras esta pantalla escribe, ignoramos el eco de nuestro propio guardado
+  // para no re-renderizar la tabla y robarle el foco al contador.
+  let guardandoStock = false;
+
+  /** Refresca sólo el color y el texto de la celda tocada, sin rehacer la tabla */
+  function refrescarCeldaStock(editor, stock) {
+    const nivel = stock === 0 ? 'agotado' : stock <= APP_CONFIG.lowStockThreshold ? 'bajo' : 'ok';
+    editor.className = `stock-editor stock-editor--${nivel}`;
+    const hint = editor.parentElement.querySelector('.stock-editor__hint');
+    if (hint) hint.textContent = stock === 0 ? 'Oculto en la tienda' : 'En la tienda';
+  }
+
+  async function aplicarStock(id, valor, editor) {
+    guardandoStock = true;
+    const actualizado = await setProductStock(id, valor);
+    guardandoStock = false;
+    if (actualizado && editor) refrescarCeldaStock(editor, getStock(actualizado));
+  }
+
+  // Botones − / +
+  productsTbody?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-stock-step]');
+    if (!btn) return;
+
+    const editor = btn.closest('.stock-editor');
+    const input = editor.querySelector('[data-stock-input]');
+    const nuevo = Math.max(0, (parseInt(input.value, 10) || 0) + parseInt(btn.dataset.stockStep, 10));
+
+    input.value = nuevo; // feedback inmediato
+    aplicarStock(btn.dataset.id, nuevo, editor);
+  });
+
+  // Escritura directa en el campo (se confirma al salir del campo o con Enter)
+  productsTbody?.addEventListener('change', (e) => {
+    const input = e.target.closest('[data-stock-input]');
+    if (!input) return;
+
+    const nuevo = Math.max(0, parseInt(input.value, 10) || 0);
+    input.value = nuevo; // normaliza negativos o texto vacío
+    aplicarStock(input.dataset.id, nuevo, input.closest('.stock-editor'));
+  });
+
+  productsTbody?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.closest('[data-stock-input]')) {
+      e.preventDefault();
+      e.target.blur(); // dispara el 'change'
+    }
+  });
+
+  // ── Sincronización con el resto del panel ──
+  // Releemos y re-renderizamos; nunca escribimos acá, o se genera un bucle.
+  function refrescarDesdeAlmacenamiento() {
+    if (guardandoStock) return;
+    products = getLocalProducts();
+    renderProducts(document.getElementById('inventory-search')?.value || '');
+  }
+
+  // Cambios de esta pestaña (POS abierto en la misma pestaña, formularios, etc.)
+  window.addEventListener('voko_products_updated', refrescarDesdeAlmacenamiento);
+  // Cambios hechos en OTRA pestaña
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'voko_products') refrescarDesdeAlmacenamiento();
   });
 
   // Sidebar Toggle
@@ -478,8 +546,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Note: voko_products_updated event removed to prevent circular overwrites.
-  // Inventory.js manages its own products array directly.
+  // Los cambios de productos se sincronizan más arriba, en
+  // refrescarDesdeAlmacenamiento(). Ese listener sólo relee y re-renderiza:
+  // ya no hay riesgo de sobrescritura circular porque las escrituras son
+  // quirúrgicas (updateLocalProduct / removeLocalProduct), no del array entero.
 
   // ── Mass Upload Modal Logic ──
   const massModal = document.getElementById('mass-upload-modal');
@@ -561,6 +631,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const defaultStock = Math.max(0, parseInt(document.getElementById('mass-stock')?.value, 10) || 1);
 
     let createdCount = 0;
+    const nuevos = [];
 
     for (let i = 0; i < selectedMassFiles.length; i++) {
       const file = selectedMassFiles[i];
@@ -593,11 +664,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         descripcion: 'Producto borrador importado desde fotos.'
       };
 
-      products.unshift(newProduct);
+      nuevos.unshift(newProduct);
       createdCount++;
     }
 
+    // Releemos recién ahora, después de procesar todas las fotos, para no
+    // trabajar sobre una copia vieja mientras se comprimían las imágenes.
+    products = [...nuevos, ...getLocalProducts()];
+
     await saveDataAsync();
+    products = getLocalProducts();
     renderProducts();
     closeMassModal();
 

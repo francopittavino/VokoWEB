@@ -183,6 +183,7 @@ export async function saveLocalProductsAsync(products) {
   await externalizeImages(toSave);
   try {
     localStorage.setItem('voko_products', JSON.stringify(toSave));
+    notifyProductsUpdated();
   } catch (e) {
     console.error('Error saving products to localStorage:', e);
   }
@@ -202,9 +203,110 @@ export function saveLocalProducts(products) {
   });
   try {
     localStorage.setItem('voko_products', JSON.stringify(toSave));
+    notifyProductsUpdated();
   } catch (e) {
     console.error('Error saving products to localStorage:', e);
   }
+}
+
+/**
+ * Avisa a la pestaña actual que los productos cambiaron.
+ * (El evento `storage` del navegador sólo llega a las OTRAS pestañas.)
+ * Quien escuche debe releer de localStorage y re-renderizar — nunca escribir,
+ * o se genera un bucle.
+ */
+function notifyProductsUpdated() {
+  window.dispatchEvent(new CustomEvent('voko_products_updated'));
+}
+
+// ──────────────────────────────────────────
+// ESCRITURAS QUIRÚRGICAS
+// ──────────────────────────────────────────
+// Guardar el array entero desde una copia en memoria pisa los cambios que
+// hicieron otras pantallas: si el POS descuenta stock y después Inventario
+// guarda su copia vieja, el stock vendido "revive".
+// Estas funciones releen SIEMPRE el estado actual y tocan sólo lo necesario.
+
+/**
+ * Modifica un producto puntual.
+ * @param {string} id
+ * @param {object|function} changes objeto de cambios, o `(producto) => cambios`
+ * @returns {object|null} el producto actualizado
+ */
+export function updateLocalProduct(id, changes) {
+  const products = getLocalProducts();
+  const index = products.findIndex((p) => String(p.id) === String(id));
+  if (index === -1) return null;
+
+  const patch = typeof changes === 'function' ? changes(products[index]) : changes;
+  products[index] = { ...products[index], ...patch };
+
+  saveLocalProducts(products);
+  return products[index];
+}
+
+/** Agrega un producto nuevo al inicio de la lista */
+export function addLocalProduct(product) {
+  const products = getLocalProducts();
+  products.unshift(product);
+  saveLocalProducts(products);
+  return product;
+}
+
+/** Elimina un producto por id */
+export function removeLocalProduct(id) {
+  const products = getLocalProducts().filter((p) => String(p.id) !== String(id));
+  saveLocalProducts(products);
+}
+
+/**
+ * Descuenta stock de varios productos en una sola pasada (una venta del POS).
+ * @param {Array<{id: string, cantidad: number}>} items
+ */
+export function decreaseLocalStock(items) {
+  const products = getLocalProducts();
+
+  items.forEach((item) => {
+    const product = products.find((p) => String(p.id) === String(item.id));
+    if (product) {
+      product.stock = Math.max(0, getStock(product) - (parseInt(item.cantidad, 10) || 0));
+    }
+  });
+
+  saveLocalProducts(products);
+  return products;
+}
+
+/**
+ * Devuelve stock al inventario (al anular una venta).
+ * @returns {{restored: number, notFound: string[]}}
+ */
+export function increaseLocalStock(items) {
+  const products = getLocalProducts();
+  let restored = 0;
+  const notFound = [];
+
+  items.forEach((item) => {
+    const itemId = item.id || item.producto_id;
+    const itemName = (item.nombre || item.name || '').toLowerCase().trim();
+    const product = products.find(
+      (p) =>
+        (itemId && String(p.id) === String(itemId)) ||
+        (itemName && p.nombre.toLowerCase().trim() === itemName)
+    );
+
+    const qty = parseInt(item.cantidad, 10) || 1;
+
+    if (product) {
+      product.stock = getStock(product) + qty;
+      restored += qty;
+    } else {
+      notFound.push(`${qty}x ${item.nombre || 'producto sin nombre'}`);
+    }
+  });
+
+  saveLocalProducts(products);
+  return { restored, notFound };
 }
 
 // ── Fechas ──

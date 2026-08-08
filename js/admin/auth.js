@@ -1,7 +1,12 @@
 /* ============================================
    VOKO ACCESORIOS — Autenticación del Panel
    Login por contraseña (hash SHA-256) + sesión
-   con vencimiento en sessionStorage.
+   con vencimiento en localStorage.
+
+   Se usa localStorage y no sessionStorage porque este último es por pestaña:
+   tener el POS y el Inventario abiertos a la vez obligaba a loguearse dos
+   veces, algo poco práctico en plena feria. La sesión igual vence sola a las
+   12 horas y "Cerrar Sesión" la borra en el acto.
    ============================================ */
 
 import { ADMIN_PASSWORD_HASH, ADMIN_SESSION_KEY, ADMIN_SESSION_TTL_MS } from '/js/config.js';
@@ -37,7 +42,7 @@ export async function login(password) {
   const hash = await sha256Hex(password);
   if (hash !== ADMIN_PASSWORD_HASH) return false;
 
-  sessionStorage.setItem(
+  localStorage.setItem(
     ADMIN_SESSION_KEY,
     JSON.stringify({ ok: true, expiresAt: Date.now() + ADMIN_SESSION_TTL_MS })
   );
@@ -46,13 +51,15 @@ export async function login(password) {
 
 /** Cierra la sesión y vuelve al login */
 export function logout(redirect = true) {
+  localStorage.removeItem(ADMIN_SESSION_KEY);
+  // Por si quedó una sesión de la versión anterior, que usaba sessionStorage.
   sessionStorage.removeItem(ADMIN_SESSION_KEY);
   if (redirect) window.location.replace(LOGIN_URL);
 }
 
 /** true si hay una sesión válida y no vencida */
 export function isAuthenticated() {
-  const raw = sessionStorage.getItem(ADMIN_SESSION_KEY);
+  const raw = localStorage.getItem(ADMIN_SESSION_KEY);
   if (!raw) return false;
 
   try {
@@ -62,7 +69,7 @@ export function isAuthenticated() {
     // Sesión de una versión anterior (guardaba el string 'true'): no es válida.
   }
 
-  sessionStorage.removeItem(ADMIN_SESSION_KEY);
+  localStorage.removeItem(ADMIN_SESSION_KEY);
   return false;
 }
 

@@ -7,6 +7,7 @@ import {
   getProductImg,
   getStock,
   isFromToday,
+  decreaseLocalStock,
   PLACEHOLDER_IMAGE,
 } from './storage-helper.js';
 
@@ -28,8 +29,9 @@ function populateProducts(filterText = '') {
   // Always re-read fresh products from storage
   products = getLocalProducts();
 
-  const activeProducts = products.filter(p => p.activo !== false);
-  const filtered = activeProducts.filter(p => 
+  // En el POS se listan todos: los agotados aparecen deshabilitados, para que
+  // se vea que existen pero no se puedan vender.
+  const filtered = products.filter(p =>
     p.nombre.toLowerCase().includes(filterText.toLowerCase().trim())
   );
 
@@ -244,15 +246,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Descontar el stock local de cada producto vendido.
+    // decreaseLocalStock relee el estado actual y toca sólo estos productos,
+    // así no pisa cambios hechos desde Inventario en otra pestaña.
     // (La rama de Supabase ya lo descuenta del lado del servidor en createSale.)
-    products = getLocalProducts();
-    currentSale.forEach(item => {
-      const product = products.find(p => String(p.id) === String(item.id));
-      if (product) {
-        product.stock = Math.max(0, getStock(product) - item.cantidad);
-      }
-    });
-    saveLocalProducts(products);
+    products = decreaseLocalStock(currentSale);
 
     const now = new Date();
     salesHistory.unshift({
