@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Acceso Admin | VOKO ACCESORIOS</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="stylesheet" href="/css/variables.css">
   <link rel="stylesheet" href="/css/base.css">
   <link rel="stylesheet" href="/css/components.css">
@@ -35,27 +37,43 @@
   </div>
 
   <script type="module">
-    import { ADMIN_PASSWORD } from '/js/config.js';
+    import { login, isAuthenticated, isAdminPasswordConfigured } from '/js/admin/auth.js';
 
-    document.getElementById('login-form').addEventListener('submit', (e) => {
+    // Si la sesión sigue viva, saltamos directo al panel.
+    if (isAuthenticated()) {
+      window.location.replace('/admin/dashboard.html');
+    }
+
+    const btn = document.getElementById('login-btn');
+    const errorEl = document.getElementById('login-error');
+
+    // Sin VITE_ADMIN_PASSWORD_HASH cargado no hay forma de entrar:
+    // avisamos con un mensaje claro en vez de un "contraseña incorrecta" engañoso.
+    if (!isAdminPasswordConfigured()) {
+      btn.disabled = true;
+      errorEl.textContent = 'El acceso no está configurado en este entorno: falta la variable VITE_ADMIN_PASSWORD_HASH.';
+      errorEl.classList.add('show');
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (!isAdminPasswordConfigured()) return;
+
       const password = document.getElementById('login-password').value;
-      const btn = document.getElementById('login-btn');
-      const errorEl = document.getElementById('login-error');
 
       btn.disabled = true;
       btn.textContent = 'Verificando...';
       errorEl.classList.remove('show');
 
-      if (password === ADMIN_PASSWORD || password === 'vokoale') {
-        sessionStorage.setItem('voko_admin', 'true');
-        window.location.href = '/admin/dashboard.html';
-      } else {
-        errorEl.textContent = 'Contraseña incorrecta. Intentá de nuevo.';
-        errorEl.classList.add('show');
-        btn.disabled = false;
-        btn.textContent = 'Ingresar al Panel';
+      if (await login(password)) {
+        window.location.replace('/admin/dashboard.html');
+        return;
       }
+
+      errorEl.textContent = 'Contraseña incorrecta. Intentá de nuevo.';
+      errorEl.classList.add('show');
+      btn.disabled = false;
+      btn.textContent = 'Ingresar al Panel';
     });
   </script>
 

@@ -1,26 +1,17 @@
-import { formatPrice, SUPABASE_URL } from '/js/config.js';
-import { getLocalProducts, saveLocalProducts, getLocalSales, saveLocalSales } from './storage-helper.js';
+import { formatPrice, SUPABASE_URL, APP_CONFIG } from '/js/config.js';
+import {
+  getLocalProducts,
+  saveLocalProducts,
+  getLocalSales,
+  saveLocalSales,
+  getProductImg,
+  getStock,
+  isFromToday,
+  PLACEHOLDER_IMAGE,
+} from './storage-helper.js';
 
 function isSupabaseReady() {
   return SUPABASE_URL && !SUPABASE_URL.includes('TU-PROYECTO') && SUPABASE_URL.startsWith('http');
-}
-
-const DEMO_IMAGES = {
-  'prod-1': 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop',
-  'prod-2': 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=400&h=400&fit=crop',
-  'prod-3': 'https://images.unsplash.com/photo-1594223274512-ad4803739b7c?w=400&h=400&fit=crop',
-  'prod-4': 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop',
-  'prod-5': 'https://images.unsplash.com/photo-1622560480605-d83c853bc5c3?w=400&h=400&fit=crop',
-  'prod-6': 'https://images.unsplash.com/photo-1611078489935-0cb964de46d6?w=400&h=400&fit=crop',
-  'prod-7': 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400&h=400&fit=crop',
-  'prod-8': 'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=400&h=400&fit=crop',
-};
-
-function getProductImg(p) {
-  if (p.imagen_url && p.imagen_url.startsWith('http')) return p.imagen_url;
-  if (p.imagen && p.imagen.startsWith('http')) return p.imagen;
-  if (p.id && DEMO_IMAGES[p.id]) return DEMO_IMAGES[p.id];
-  return 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop';
 }
 
 let products = getLocalProducts();
@@ -51,11 +42,23 @@ function populateProducts(filterText = '') {
 
   grid.innerHTML = filtered.map(p => {
     const imgUrl = getProductImg(p);
+    const stock = getStock(p);
+    const soldOut = stock === 0;
+    const low = !soldOut && stock <= APP_CONFIG.lowStockThreshold;
+    const stockColor = soldOut
+      ? 'var(--color-error)'
+      : low
+        ? 'var(--color-warning)'
+        : 'var(--color-on-surface-variant)';
+
     return `
-      <div class="pos-product-card" data-product-id="${p.id}">
-        <img src="${imgUrl}" alt="${p.nombre}" class="pos-product-card__img" onerror="this.src='https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop'">
+      <div class="pos-product-card${soldOut ? ' pos-product-card--disabled' : ''}" data-product-id="${p.id}" ${soldOut ? 'title="Sin stock disponible"' : ''} style="${soldOut ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
+        <img src="${imgUrl}" alt="${p.nombre}" class="pos-product-card__img" onerror="this.src='${PLACEHOLDER_IMAGE}'">
         <div class="pos-product-card__name">${p.nombre}</div>
         <div class="pos-product-card__price">${formatPrice(p.precio)}</div>
+        <div style="font-size: 11px; font-weight: 600; color: ${stockColor};">
+          ${soldOut ? 'Sin stock' : `Stock: ${stock}`}
+        </div>
       </div>
     `;
   }).join('');
@@ -73,10 +76,21 @@ function addToSale(prodId) {
   const product = products.find(p => p.id === prodId);
   if (!product) return;
 
+  const stock = getStock(product);
+  if (stock === 0) {
+    alert(`"${product.nombre}" no tiene stock disponible. Cargá unidades desde Inventario.`);
+    return;
+  }
+
   const existing = currentSale.find(i => i.id === prodId);
   const imgUrl = getProductImg(product);
 
   if (existing) {
+    // No permitimos vender más unidades de las que hay cargadas.
+    if (existing.cantidad >= stock) {
+      alert(`Sólo quedan ${stock} unidad${stock > 1 ? 'es' : ''} de "${product.nombre}".`);
+      return;
+    }
     existing.cantidad += 1;
   } else {
     currentSale.push({
@@ -114,7 +128,7 @@ function renderSaleItems() {
       <tr>
         <td>
           <div style="display:flex; align-items:center; gap:var(--space-3);">
-            <img src="${imgUrl}" alt="${item.nombre}" style="width:40px; height:40px; border-radius:var(--radius-sm); object-fit:cover; background:var(--color-surface-container);" onerror="this.src='https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop'">
+            <img src="${imgUrl}" alt="${item.nombre}" style="width:40px; height:40px; border-radius:var(--radius-sm); object-fit:cover; background:var(--color-surface-container);" onerror="this.src='${PLACEHOLDER_IMAGE}'">
             <strong>${item.nombre}</strong>
           </div>
         </td>
@@ -142,6 +156,14 @@ window.updateItemQty = (idx, delta) => {
   const item = currentSale[idx];
   if (!item) return;
 
+  if (delta > 0) {
+    const stock = getStock(products.find(p => p.id === item.id));
+    if (item.cantidad + delta > stock) {
+      alert(`Sólo quedan ${stock} unidad${stock === 1 ? '' : 'es'} de "${item.nombre}".`);
+      return;
+    }
+  }
+
   item.cantidad += delta;
   if (item.cantidad <= 0) {
     currentSale.splice(idx, 1);
@@ -157,12 +179,16 @@ window.removeItem = (idx) => {
 function renderHistory() {
   const container = document.getElementById('pos-history-list');
   if (!container) return;
-  if (salesHistory.length === 0) {
+
+  // La tarjeta se titula "Ventas del Día": mostramos sólo las de hoy.
+  const todaySales = salesHistory.filter(isFromToday);
+
+  if (todaySales.length === 0) {
     container.innerHTML = `<p style="color:var(--color-on-surface-variant);font-size:var(--fs-body-sm);">Sin ventas registradas hoy.</p>`;
     return;
   }
 
-  container.innerHTML = salesHistory.slice(0, 5).map(s => `
+  container.innerHTML = todaySales.slice(0, 5).map(s => `
     <div style="display:flex;justify-content:space-between;padding:var(--space-2) 0;border-bottom:1px solid var(--color-surface-container-high);font-size:var(--fs-body-sm);">
       <span>${s.fecha} (${s.itemsCount} items)</span>
       <strong>${formatPrice(s.total)}</strong>
@@ -217,9 +243,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
+    // Descontar el stock local de cada producto vendido.
+    // (La rama de Supabase ya lo descuenta del lado del servidor en createSale.)
+    products = getLocalProducts();
+    currentSale.forEach(item => {
+      const product = products.find(p => String(p.id) === String(item.id));
+      if (product) {
+        product.stock = Math.max(0, getStock(product) - item.cantidad);
+      }
+    });
+    saveLocalProducts(products);
+
+    const now = new Date();
     salesHistory.unshift({
       id: 'sale-' + Date.now(),
-      fecha: new Date().toLocaleDateString('es-AR') + ' ' + new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+      timestamp: now.getTime(),
+      fecha: now.toLocaleDateString('es-AR') + ' ' + now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
       total,
       itemsCount: currentSale.reduce((acc, i) => acc + i.cantidad, 0),
       items: currentSale.map(item => ({

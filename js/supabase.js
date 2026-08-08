@@ -5,7 +5,7 @@
    ============================================ */
 
 import { createClient } from '@supabase/supabase-js';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
+import { SUPABASE_URL, SUPABASE_ANON_KEY, APP_CONFIG } from './config.js';
 
 // ──────────────────────────────────────────
 // Initialize Supabase Client
@@ -291,7 +291,7 @@ export async function getDashboardStats() {
       .from('productos')
       .select('id', { count: 'exact', head: true })
       .eq('activo', true)
-      .lt('stock', 3),
+      .lte('stock', APP_CONFIG.lowStockThreshold),
   ]);
 
   const salesToday = salesTodayRes.data?.reduce(

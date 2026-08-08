@@ -1,17 +1,16 @@
-import { formatPrice, SUPABASE_URL } from '/js/config.js';
-import { getLocalProducts, saveLocalProducts, saveLocalProductsAsync, getLocalProductsWithImages, deleteImageFromIDB } from './storage-helper.js';
+import { formatPrice, SUPABASE_URL, APP_CONFIG } from '/js/config.js';
+import {
+  getLocalProducts,
+  saveLocalProducts,
+  saveLocalProductsAsync,
+  getLocalProductsWithImages,
+  deleteImageFromIDB,
+  getProductImg,
+  getStock,
+  INITIAL_DEMO_CATEGORIES,
+} from './storage-helper.js';
 
-let categories = [
-  { id: 'cat-1', nombre: 'Bolsos', orden: 1, activa: true },
-  { id: 'cat-2', nombre: 'Bandoleras', orden: 2, activa: true },
-  { id: 'cat-3', nombre: 'Riñoneras', orden: 3, activa: true },
-  { id: 'cat-4', nombre: 'Carteras', orden: 4, activa: true },
-  { id: 'cat-5', nombre: 'Morrales', orden: 5, activa: true },
-  { id: 'cat-6', nombre: 'Materos', orden: 6, activa: true },
-  { id: 'cat-7', nombre: 'Sobres', orden: 7, activa: true },
-  { id: 'cat-8', nombre: 'Cinturones', orden: 8, activa: true },
-  { id: 'cat-9', nombre: 'Billeteras', orden: 9, activa: true },
-];
+let categories = INITIAL_DEMO_CATEGORIES.map((cat) => ({ ...cat }));
 
 let products = getLocalProducts();
 
@@ -93,12 +92,18 @@ function renderProducts(filter = '') {
   tbody.innerHTML = filtered.map(p => {
     const cat = categories.find(c => c.id === p.categoria_id);
     const isActive = p.activo !== false;
+    const stock = getStock(p);
+    const stockColor = stock === 0
+      ? 'var(--color-error)'
+      : stock <= APP_CONFIG.lowStockThreshold
+        ? 'var(--color-warning)'
+        : 'var(--color-success)';
 
     return `
     <tr>
       <td>
         <div class="admin-table__product-cell">
-          <img class="admin-table__product-img" src="${p.imagen_url || ''}" alt="${p.nombre}" loading="lazy">
+          <img class="admin-table__product-img" src="${getProductImg(p)}" alt="${p.nombre}" loading="lazy">
           <div>
             <strong>${p.nombre}</strong>
             ${p.destacado ? '<br><span style="font-size:11px;color:var(--color-tertiary);">⭐ Destacado</span>' : ''}
@@ -107,6 +112,10 @@ function renderProducts(filter = '') {
       </td>
       <td>${cat?.nombre || '—'}</td>
       <td>${formatPrice(p.precio)}</td>
+      <td>
+        <strong style="color: ${stockColor};">${stock}</strong>
+        ${stock === 0 ? '<br><span style="font-size:11px;color:var(--color-error);">Sin stock</span>' : ''}
+      </td>
       <td>${p.badge ? `<span class="product-card__badge product-card__badge--${p.badge}" style="position:static;">${p.badge}</span>` : '—'}</td>
       <td>
         <div style="display: inline-flex; align-items: center; gap: 8px;">
@@ -114,8 +123,8 @@ function renderProducts(filter = '') {
             <input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleProductActive('${p.id}', this.checked)">
             <span class="toggle__track"></span>
           </label>
-          <span class="status-pill ${isActive ? 'status-pill--active' : 'status-pill--inactive'}">
-            ${isActive ? '🟢 Visible' : '⚪ Oculto'}
+          <span class="status-pill ${isActive && stock > 0 ? 'status-pill--active' : 'status-pill--inactive'}">
+            ${!isActive ? '⚪ Oculto' : stock > 0 ? '🟢 Visible' : '🔴 Oculto: sin stock'}
           </span>
         </div>
       </td>
@@ -170,6 +179,7 @@ window.editProduct = (id) => {
   document.getElementById('prod-name').value = p.nombre;
   document.getElementById('prod-category').value = p.categoria_id;
   document.getElementById('prod-price').value = p.precio;
+  document.getElementById('prod-stock').value = getStock(p);
   document.getElementById('prod-badge').value = p.badge || '';
   resetImagePreview(p.imagen_url || '');
   document.getElementById('prod-description').value = p.descripcion || '';
@@ -338,6 +348,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('product-form')?.reset();
     document.getElementById('product-id').value = '';
     document.getElementById('prod-active').checked = true;
+    document.getElementById('prod-stock').value = 1;
     resetImagePreview('');
     document.getElementById('form-title').textContent = 'Nuevo Producto';
     if (formCard) {
@@ -376,6 +387,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       nombre: document.getElementById('prod-name').value,
       categoria_id: document.getElementById('prod-category').value,
       precio: parseFloat(document.getElementById('prod-price').value),
+      stock: Math.max(0, parseInt(document.getElementById('prod-stock').value, 10) || 0),
       badge: document.getElementById('prod-badge').value || null,
       imagen_url: imageUrl,
       descripcion: document.getElementById('prod-description').value || '',
@@ -546,6 +558,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const defaultCat = document.getElementById('mass-category')?.value || (categories[0]?.id || 'cat-1');
     const defaultPrice = parseFloat(document.getElementById('mass-price')?.value) || 50000;
+    const defaultStock = Math.max(0, parseInt(document.getElementById('mass-stock')?.value, 10) || 1);
 
     let createdCount = 0;
 
@@ -571,6 +584,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         id: 'prod-' + Date.now() + '-' + i,
         nombre: rawName,
         precio: defaultPrice,
+        stock: defaultStock,
         badge: 'nuevo',
         destacado: false,
         activo: true,

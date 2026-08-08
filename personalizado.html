@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pedido Personalizado | VOKO ACCESORIOS</title>
   <meta name="description" content="Diseñá tu accesorio ideal. Compartí tu visión con Voko Accesorios y nuestros artesanos crearán una pieza única hecha a medida.">
+  <meta property="og:title" content="Pedido Personalizado | VOKO ACCESORIOS">
+  <meta property="og:description" content="Diseñá tu accesorio ideal y lo confeccionamos a mano especialmente para vos.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="/images/grid_personalizado.jpg">
+  <meta property="og:locale" content="es_AR">
+  <meta property="og:site_name" content="Voko Accesorios">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#665347">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="stylesheet" href="/css/variables.css">
   <link rel="stylesheet" href="/css/base.css">
   <link rel="stylesheet" href="/css/components.css">
@@ -177,7 +186,7 @@
             <a href="https://www.instagram.com/voko.accesorios" target="_blank" class="footer__social-link" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/></svg></a>
             <a href="https://www.facebook.com/profile.php?id=61589357885130" target="_blank" class="footer__social-link" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></a>
           </div>
-          <p style="font-size: var(--fs-label-sm); color: var(--color-on-surface-variant); margin-top: var(--space-3);">© 2024 Voko Accesorios. Hecho a mano con pasión.</p>
+          <p style="font-size: var(--fs-label-sm); color: var(--color-on-surface-variant); margin-top: var(--space-3);">© <span data-current-year>2026</span> Voko Accesorios. Hecho a mano con pasión.</p>
         </div>
       </div>
     </div>
@@ -233,8 +242,10 @@
 
       // Persist to local orders for Admin panel tracking
       let orders = JSON.parse(localStorage.getItem('voko_orders') || '[]');
+      const now = new Date();
       const newOrder = {
         id: 'order-' + Date.now(),
+        timestamp: now.getTime(),
         cliente: name,
         telefono: phone,
         fechaLimite: formattedDeadline,
@@ -242,7 +253,7 @@
         detalle: `[${qty}x ${title}] - ${description}`,
         hasImage: false,
         estado: 'Pendiente',
-        fecha: new Date().toLocaleDateString('es-AR') + ' ' + new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+        fecha: now.toLocaleDateString('es-AR') + ' ' + now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
       };
       orders.unshift(newOrder);
       localStorage.setItem('voko_orders', JSON.stringify(orders));

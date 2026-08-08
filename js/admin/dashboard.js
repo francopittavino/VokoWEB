@@ -1,23 +1,14 @@
-import { formatPrice, SUPABASE_URL } from '/js/config.js';
-import { getLocalProducts, saveLocalProducts, getLocalSales, saveLocalSales } from './storage-helper.js';
-
-const DEMO_IMAGES = {
-  'prod-1': 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop',
-  'prod-2': 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=400&h=400&fit=crop',
-  'prod-3': 'https://images.unsplash.com/photo-1594223274512-ad4803739b7c?w=400&h=400&fit=crop',
-  'prod-4': 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop',
-  'prod-5': 'https://images.unsplash.com/photo-1622560480605-d83c853bc5c3?w=400&h=400&fit=crop',
-  'prod-6': 'https://images.unsplash.com/photo-1611078489935-0cb964de46d6?w=400&h=400&fit=crop',
-  'prod-7': 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400&h=400&fit=crop',
-  'prod-8': 'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=400&h=400&fit=crop',
-};
-
-function getProductImg(p) {
-  if (p.imagen_url && p.imagen_url.startsWith('http')) return p.imagen_url;
-  if (p.imagen && p.imagen.startsWith('http')) return p.imagen;
-  if (p.id && DEMO_IMAGES[p.id]) return DEMO_IMAGES[p.id];
-  return 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop';
-}
+import { formatPrice, SUPABASE_URL, APP_CONFIG } from '/js/config.js';
+import {
+  getLocalProducts,
+  saveLocalProducts,
+  getLocalSales,
+  saveLocalSales,
+  getProductImg,
+  getStock,
+  isFromToday,
+  PLACEHOLDER_IMAGE,
+} from './storage-helper.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Sidebar toggle
@@ -35,11 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     overlay?.classList.remove('open');
   });
 
-  // Logout
-  document.getElementById('logout-btn')?.addEventListener('click', () => {
-    sessionStorage.removeItem('voko_admin');
-    window.location.href = '/admin/';
-  });
+  // El botón de cerrar sesión lo cablea auth-guard.js para todas las páginas.
 
   // Show user status
   const email = sessionStorage.getItem('voko_admin_email');
@@ -61,18 +48,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     currentSaleToDelete = sale;
     if (modalSaleIdLabel) modalSaleIdLabel.textContent = `ID: ${sale.id} • ${sale.fecha}`;
 
-    // Generate items preview list
-    const products = getLocalProducts();
-    const items = (sale.items && sale.items.length > 0) ? sale.items : (products.length > 0 ? [{
-      nombre: products[0].nombre,
-      cantidad: sale.itemsCount || 1,
-      id: products[0].id
-    }] : []);
+    // Sólo se puede devolver al stock lo que la venta haya registrado item por item.
+    // Las ventas viejas (anteriores al detalle por item) no se pueden reponer:
+    // adivinar qué producto era llevaría a sumarle stock al equivocado.
+    const items = Array.isArray(sale.items) ? sale.items : [];
 
     if (modalItemsPreview) {
-      modalItemsPreview.innerHTML = items.map(item => `
-        <div style="padding: 2px 0;">• <strong>${item.cantidad}x ${item.nombre}</strong></div>
-      `).join('');
+      modalItemsPreview.innerHTML = items.length
+        ? items.map(item => `
+            <div style="padding: 2px 0;">• <strong>${item.cantidad}x ${item.nombre}</strong></div>
+          `).join('')
+        : `<em style="color: var(--color-on-surface-variant);">Esta venta no guardó el detalle de productos, así que no se puede devolver al stock automáticamente.</em>`;
+    }
+
+    if (btnRestoreAndDelete) {
+      btnRestoreAndDelete.disabled = items.length === 0;
+      btnRestoreAndDelete.textContent = items.length
+        ? '↩️ Devolver al stock y eliminar'
+        : '↩️ Sin detalle para devolver';
     }
 
     deleteModal?.classList.add('open');
@@ -92,23 +85,31 @@ document.addEventListener('DOMContentLoaded', async () => {
   btnRestoreAndDelete?.addEventListener('click', () => {
     if (!currentSaleToDelete) return;
 
+    const itemsToRestore = Array.isArray(currentSaleToDelete.items) ? currentSaleToDelete.items : [];
+    if (itemsToRestore.length === 0) return;
+
     let products = getLocalProducts();
     let salesHistory = getLocalSales();
 
-    const itemsToRestore = (currentSaleToDelete.items && currentSaleToDelete.items.length > 0) 
-      ? currentSaleToDelete.items 
-      : (products.length > 0 ? [{ id: products[0].id, cantidad: currentSaleToDelete.itemsCount || 1 }] : []);
+    let restoredUnits = 0;
+    const notFound = [];
 
     itemsToRestore.forEach(item => {
       const itemId = item.id || item.producto_id;
       const itemName = (item.nombre || item.name || '').toLowerCase().trim();
-      const p = products.find(prod => 
-        (itemId && prod.id === itemId) || 
+      const p = products.find(prod =>
+        (itemId && String(prod.id) === String(itemId)) ||
         (itemName && prod.nombre.toLowerCase().trim() === itemName)
       );
+
+      const qty = parseInt(item.cantidad, 10) || 1;
+
       if (p) {
-        const qty = parseInt(item.cantidad) || 1;
-        p.stock = (p.stock || 0) + qty;
+        p.stock = getStock(p) + qty;
+        restoredUnits += qty;
+      } else {
+        // El producto fue eliminado del inventario después de la venta.
+        notFound.push(`${qty}x ${item.nombre || 'producto sin nombre'}`);
       }
     });
 
@@ -120,7 +121,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     closeDeleteModal();
     initStats();
-    alert('✅ Venta eliminada y stock de productos restaurado con éxito.');
+
+    let mensaje = `✅ Venta eliminada. Se devolvieron ${restoredUnits} unidad${restoredUnits === 1 ? '' : 'es'} al stock.`;
+    if (notFound.length) {
+      mensaje += `\n\n⚠️ No se pudo devolver (ya no están en el inventario):\n• ${notFound.join('\n• ')}`;
+    }
+    alert(mensaje);
   });
 
   // Action: Only Delete Sale (do not touch stock)
@@ -138,31 +144,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Calculate & render stats
   async function initStats() {
-    let totalProducts = 0;
-    let salesToday = 0;
-    let ordersCount = 0;
-    let lowStockCount = 0;
-
     // Check local storage items first
     const products = getLocalProducts();
     let salesHistory = getLocalSales();
     const orders = JSON.parse(localStorage.getItem('voko_orders') || '[]');
 
-    let activeCount = 0;
+    let totalProducts = products.length;
+    // "Visibles" = lo que realmente se ve en la tienda: marcado como visible Y con stock.
+    let visibleCount = products.filter((p) => p.activo !== false && getStock(p) > 0).length;
+    let lowStockCount = products.filter(
+      (p) => p.activo !== false && getStock(p) <= APP_CONFIG.lowStockThreshold
+    ).length;
 
-    if (products.length > 0) {
-      totalProducts = products.length;
-      activeCount = products.filter(p => p.activo !== false).length;
-      lowStockCount = products.filter(p => p.stock <= 3).length;
-    }
-
-    if (salesHistory.length > 0) {
-      salesToday = salesHistory.reduce((acc, s) => acc + (s.total || 0), 0);
-    }
-
-    if (orders.length > 0) {
-      ordersCount = orders.length;
-    }
+    // "Hoy" es hoy: filtramos por fecha en lugar de sumar todo el historial.
+    let salesToday = salesHistory
+      .filter(isFromToday)
+      .reduce((acc, s) => acc + (Number(s.total) || 0), 0);
+    let ordersToday = orders.filter(isFromToday).length;
 
     // Try Supabase if configured
     try {
@@ -172,7 +170,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (stats) {
           totalProducts = stats.totalProducts || totalProducts;
           salesToday = stats.salesToday || salesToday;
-          ordersCount = stats.salesCount || ordersCount;
+          lowStockCount = stats.lowStockCount ?? lowStockCount;
         }
       }
     } catch {
@@ -183,13 +181,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const elProducts = document.getElementById('stat-products');
     const elSales = document.getElementById('stat-sales-today');
     const elOrders = document.getElementById('stat-orders');
+    const elVisible = document.getElementById('stat-visible');
     const elLowStock = document.getElementById('stat-low-stock');
 
     if (elProducts) elProducts.textContent = totalProducts;
     if (elSales) elSales.textContent = formatPrice(salesToday);
-    if (elOrders) elOrders.textContent = ordersCount;
-    if (elLowStock) elLowStock.textContent = activeCount;
-    if (document.getElementById('stat-low-stock')) document.getElementById('stat-low-stock').textContent = lowStockCount;
+    if (elOrders) elOrders.textContent = ordersToday;
+    if (elVisible) elVisible.textContent = visibleCount;
+    if (elLowStock) elLowStock.textContent = lowStockCount;
 
     // Render Recent Sales Table with Accordion Dropdowns & Delete Action
     const recentSalesContainer = document.getElementById('recent-sales');
@@ -221,22 +220,16 @@ document.addEventListener('DOMContentLoaded', async () => {
           ${salesHistory.slice(0, 10).map((s, index) => {
             const safeId = (s.id || 'sale-' + index).replace(/[^a-zA-Z0-9_-]/g, '_');
             
-            const itemsList = (s.items && s.items.length > 0) ? s.items : (products.length > 0 ? [
-              {
-                id: products[0].id,
-                nombre: products[0].nombre,
-                precio: s.total || products[0].precio,
-                imagen: getProductImg(products[0]),
-                cantidad: s.itemsCount || 1
-              }
-            ] : []);
+            // Igual que en el modal: no inventamos un producto cuando la venta
+            // no guardó su detalle, porque mostraría datos falsos.
+            const itemsList = Array.isArray(s.items) ? s.items : [];
 
             const itemsHtml = itemsList.map(item => {
               const imgUrl = getProductImg(item);
               return `
                 <div class="sale-item-card">
                   <div class="sale-item-card__info">
-                    <img src="${imgUrl}" alt="${item.nombre}" class="sale-item-card__img" onerror="this.src='https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop'">
+                    <img src="${imgUrl}" alt="${item.nombre}" class="sale-item-card__img" onerror="this.src='${PLACEHOLDER_IMAGE}'">
                     <div>
                       <div class="sale-item-card__name">${item.nombre}</div>
                       <div class="sale-item-card__qty">Cantidad: ${item.cantidad} un. × ${formatPrice(item.precio)}</div>

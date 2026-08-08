@@ -122,6 +122,16 @@ function initSmoothScroll() {
 }
 
 // ──────────────────────────────────────────
+// AÑO ACTUAL EN EL FOOTER
+// ──────────────────────────────────────────
+function initCurrentYear() {
+  const year = String(new Date().getFullYear());
+  document.querySelectorAll('[data-current-year]').forEach((el) => {
+    el.textContent = year;
+  });
+}
+
+// ──────────────────────────────────────────
 // INITIALIZE
 // ──────────────────────────────────────────
 export function initNavigation() {
@@ -130,6 +140,7 @@ export function initNavigation() {
   initActiveLinks();
   initScrollReveal();
   initSmoothScroll();
+  initCurrentYear();
 }
 
 // Auto-init when DOM is ready

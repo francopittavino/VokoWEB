@@ -5,6 +5,7 @@
    ============================================ */
 
 import { formatPrice, getWhatsAppLink, APP_CONFIG } from './config.js';
+import { getProductImg } from './admin/storage-helper.js';
 
 // ──────────────────────────────────────────
 // CART STATE
@@ -133,7 +134,7 @@ function renderCartItems() {
     .map(
       (item) => `
     <div class="cart-item" data-id="${item.id}">
-      <img class="cart-item__image" src="${item.image || '/images/placeholder.jpg'}" alt="${item.name}" loading="lazy">
+      <img class="cart-item__image" src="${getProductImg(item)}" alt="${item.name}" loading="lazy">
       <div class="cart-item__info">
         <div class="cart-item__name">${item.name}</div>
         <div class="cart-item__price">${formatPrice(item.price)}</div>
@@ -241,6 +242,12 @@ export function checkoutWhatsApp() {
 
   const url = getWhatsAppLink(message);
   window.open(url, '_blank');
+
+  // El pedido ya viajó a WhatsApp: vaciamos el carrito para que la próxima
+  // visita no arrastre items de una compra ya enviada.
+  clearCart();
+  closeCart();
+  showToast('Pedido enviado a WhatsApp. ¡Gracias!', 'success');
 }
 
 // ──────────────────────────────────────────
@@ -258,7 +265,7 @@ export function showAddToCartToast(product) {
 
   const name = product.nombre || product.name;
   const price = product.precio || product.price;
-  const img = product.imagen_url || product.image || '/images/placeholder.jpg';
+  const img = getProductImg(product);
 
   toast.innerHTML = `
     <img src="${img}" alt="${name}" class="cart-toast__img">

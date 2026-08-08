@@ -1,6 +1,6 @@
 /* ============================================
    VOKO ACCESORIOS — Admin Panel Styles
-   Dashboard, Inventario, POS, Calculadora
+   Dashboard, Inventario, POS, Pedidos, Costos
    ============================================ */
 
 /* ════════════════════════════════════════════
@@ -609,66 +609,6 @@
   font-size: var(--fs-headline-md);
   font-weight: var(--fw-bold);
   color: var(--color-primary);
-}
-
-/* ════════════════════════════════════════════
-   CALCULATOR
-   ════════════════════════════════════════════ */
-.calc-layout {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-6);
-}
-
-@media (min-width: 1024px) {
-  .calc-layout {
-    grid-template-columns: 1.2fr 1fr;
-  }
-}
-
-.calc-result-card {
-  background: linear-gradient(135deg, var(--color-tertiary) 0%, var(--color-tertiary-container) 100%);
-  color: var(--color-on-tertiary);
-  border-radius: var(--radius-lg);
-  padding: var(--space-8);
-}
-
-.calc-result-card__label {
-  font-size: var(--fs-label-lg);
-  text-transform: uppercase;
-  letter-spacing: var(--ls-wider);
-  opacity: 0.9;
-  margin-bottom: var(--space-2);
-}
-
-.calc-result-card__price {
-  font-family: var(--font-display);
-  font-size: var(--fs-display-md);
-  font-weight: var(--fw-bold);
-  margin-bottom: var(--space-6);
-}
-
-.calc-result-card__breakdown {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.calc-result-card__row {
-  display: flex;
-  justify-content: space-between;
-  font-size: var(--fs-body-md);
-  opacity: 0.9;
-}
-
-.calc-result-card__tip {
-  margin-top: var(--space-6);
-  padding: var(--space-4);
-  background-color: rgba(255, 255, 255, 0.12);
-  border-radius: var(--radius-md);
-  font-size: var(--fs-body-sm);
-  font-style: italic;
-  line-height: var(--lh-relaxed);
 }
 
 /* ════════════════════════════════════════════

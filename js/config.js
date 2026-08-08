@@ -9,7 +9,16 @@
 export const SUPABASE_URL = import.meta.env?.VITE_SUPABASE_URL || 'https://TU-PROYECTO.supabase.co';
 export const SUPABASE_ANON_KEY = import.meta.env?.VITE_SUPABASE_ANON_KEY || 'TU-ANON-KEY-AQUI';
 export const ADMIN_EMAIL = import.meta.env?.VITE_ADMIN_EMAIL || 'admin@vokoaccesorios.com';
-export const ADMIN_PASSWORD = import.meta.env?.VITE_ADMIN_PASSWORD || 'vokoale';
+
+// La contraseña del panel vive SÓLO como hash SHA-256 en una variable de
+// entorno (`.env` local / Environment Variables en Vercel). Nunca en el repo:
+// ni en texto plano ni hasheada, porque el repositorio es público.
+// Sin esta variable el login rechaza todo — ver `.env.example`.
+export const ADMIN_PASSWORD_HASH = import.meta.env?.VITE_ADMIN_PASSWORD_HASH || '';
+
+// Clave y duración de la sesión del panel (se guarda en sessionStorage).
+export const ADMIN_SESSION_KEY = 'voko_admin';
+export const ADMIN_SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 horas
 
 // ──────────────────────────────────────────
 // APP CONFIG

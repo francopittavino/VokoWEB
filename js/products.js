@@ -7,72 +7,13 @@
 import { getProducts, getCategories } from './supabase.js';
 import { formatPrice, SUPABASE_URL } from './config.js';
 import { addToCart } from './cart.js';
-
-// ──────────────────────────────────────────
-// DEMO DATA (used when Supabase isn't configured)
-// ──────────────────────────────────────────
-const DEMO_CATEGORIES = [
-  { id: 'cat-1', nombre: 'Bolsos', orden: 1 },
-  { id: 'cat-2', nombre: 'Bandoleras', orden: 2 },
-  { id: 'cat-3', nombre: 'Riñoneras', orden: 3 },
-  { id: 'cat-4', nombre: 'Carteras', orden: 4 },
-  { id: 'cat-5', nombre: 'Morrales', orden: 5 },
-  { id: 'cat-6', nombre: 'Materos', orden: 6 },
-  { id: 'cat-7', nombre: 'Sobres', orden: 7 },
-  { id: 'cat-8', nombre: 'Cinturones', orden: 8 },
-  { id: 'cat-9', nombre: 'Billeteras', orden: 9 },
-];
-
-const DEMO_PRODUCTS = [
-  {
-    id: 'prod-1', nombre: 'Bolso Weekend', precio: 85000, stock: 5,
-    badge: 'nuevo', destacado: true, activo: true,
-    imagen_url: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop',
-    categorias: { nombre: 'Bolsos' }, categoria_id: 'cat-1',
-  },
-  {
-    id: 'prod-2', nombre: 'Bandolera Suede', precio: 45000, stock: 8,
-    badge: 'limitado', destacado: true, activo: true,
-    imagen_url: 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=400&h=400&fit=crop',
-    categorias: { nombre: 'Bandoleras' }, categoria_id: 'cat-2',
-  },
-  {
-    id: 'prod-3', nombre: 'Riñonera Urban Brown', precio: 32000, stock: 12,
-    badge: null, destacado: false, activo: true,
-    imagen_url: 'https://images.unsplash.com/photo-1594223274512-ad4803739b7c?w=400&h=400&fit=crop',
-    categorias: { nombre: 'Riñoneras' }, categoria_id: 'cat-3',
-  },
-  {
-    id: 'prod-4', nombre: 'Bolso XL Canvas', precio: 75000, stock: 3,
-    badge: 'nuevo', destacado: true, activo: true,
-    imagen_url: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop',
-    categorias: { nombre: 'Bolsos' }, categoria_id: 'cat-1',
-  },
-  {
-    id: 'prod-5', nombre: 'Morral Nomad', precio: 62000, stock: 6,
-    badge: null, destacado: false, activo: true,
-    imagen_url: 'https://images.unsplash.com/photo-1622560480605-d83c853bc5c3?w=400&h=400&fit=crop',
-    categorias: { nombre: 'Morrales' }, categoria_id: 'cat-5',
-  },
-  {
-    id: 'prod-6', nombre: 'Matero Premium Cuero', precio: 58000, stock: 10,
-    badge: 'best-seller', destacado: true, activo: true,
-    imagen_url: 'https://images.unsplash.com/photo-1611078489935-0cb964de46d6?w=400&h=400&fit=crop',
-    categorias: { nombre: 'Materos' }, categoria_id: 'cat-6',
-  },
-  {
-    id: 'prod-7', nombre: 'Cartera Minimal', precio: 92000, stock: 2,
-    badge: null, destacado: false, activo: true,
-    imagen_url: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400&h=400&fit=crop',
-    categorias: { nombre: 'Carteras' }, categoria_id: 'cat-4',
-  },
-  {
-    id: 'prod-8', nombre: 'Sobre de Gala', precio: 28000, stock: 15,
-    badge: 'elegante', destacado: false, activo: true,
-    imagen_url: 'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=400&h=400&fit=crop',
-    categorias: { nombre: 'Sobres' }, categoria_id: 'cat-7',
-  },
-];
+import {
+  getLocalProducts,
+  saveLocalProducts,
+  getProductImg,
+  getStock,
+  INITIAL_DEMO_CATEGORIES,
+} from './admin/storage-helper.js';
 
 // ──────────────────────────────────────────
 // STATE
@@ -94,8 +35,6 @@ let currentFilters = {
 function isSupabaseReady() {
   return SUPABASE_URL && !SUPABASE_URL.includes('TU-PROYECTO') && SUPABASE_URL.startsWith('http');
 }
-
-import { getLocalProducts, saveLocalProducts } from './admin/storage-helper.js';
 
 // ──────────────────────────────────────────
 // LOAD DATA (Instant local check + Supabase fallback)
@@ -140,7 +79,7 @@ export async function loadCategories() {
   }
 
   // Last resort: demo categories
-  allCategories = [...DEMO_CATEGORIES];
+  allCategories = INITIAL_DEMO_CATEGORIES.map((cat) => ({ ...cat }));
   localStorage.setItem('voko_categories', JSON.stringify(allCategories));
   return allCategories;
 }
@@ -155,7 +94,10 @@ export async function loadFeaturedProducts(limit = 4) {
 // ──────────────────────────────────────────
 
 function filterProducts(products) {
-  let filtered = [...products];
+  // Un producto se publica sólo si está marcado como visible Y tiene stock.
+  // El stock lo descuenta el Punto de Venta al cobrar: la web nunca lo toca,
+  // porque las ventas online se cierran por WhatsApp y se cargan a mano en el POS.
+  let filtered = products.filter((p) => p.activo !== false && getStock(p) > 0);
 
   // Category filter
   if (currentFilters.categoryId) {
@@ -211,19 +153,22 @@ function filterProducts(products) {
 // RENDER
 // ──────────────────────────────────────────
 
-function createProductCard(product) {
+export function createProductCard(product) {
   const badgeHTML = product.badge
     ? `<span class="product-card__badge product-card__badge--${product.badge}">${
         product.badge.charAt(0).toUpperCase() + product.badge.slice(1).replace('-', ' ')
       }</span>`
     : '';
 
+  const stock = getStock(product);
+  const soldOut = stock === 0;
+
   const card = document.createElement('div');
   card.className = 'product-card';
   card.innerHTML = `
     <div class="product-card__image-container" title="Hacer clic para ampliar imagen">
-      <img class="product-card__image" 
-           src="${product.imagen_url || '/images/placeholder.jpg'}" 
+      <img class="product-card__image"
+           src="${getProductImg(product)}"
            alt="${product.nombre}"
            loading="lazy">
       ${badgeHTML}
@@ -233,12 +178,13 @@ function createProductCard(product) {
       <div class="product-card__category">${product.categorias?.nombre || ''}</div>
       <h3 class="product-card__name" style="cursor: pointer;" title="Ampliar imagen">${product.nombre}</h3>
       <div class="product-card__price">${formatPrice(product.precio)}</div>
-      <button class="product-card__add-btn" data-product-id="${product.id}" aria-label="Agregar ${product.nombre} al carrito">
+      <button class="product-card__add-btn" data-product-id="${product.id}" ${soldOut ? 'disabled' : ''} aria-label="${soldOut ? `${product.nombre} sin stock` : `Agregar ${product.nombre} al carrito`}">
+        ${soldOut ? 'Sin stock por ahora' : `
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
           <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
         </svg>
-        Agregar
+        Agregar`}
       </button>
     </div>
   `;
@@ -284,7 +230,9 @@ export function openProductPreviewModal(product) {
   const name = product.nombre || product.name;
   const price = product.precio || product.price;
   const category = product.categorias?.nombre || 'Accesorio';
-  const imgUrl = product.imagen_url || product.image || '/images/placeholder.jpg';
+  const imgUrl = getProductImg(product);
+  const stock = getStock(product);
+  const soldOut = stock === 0;
   let qty = 1;
 
   overlay.innerHTML = `
@@ -310,8 +258,8 @@ export function openProductPreviewModal(product) {
           </div>
 
           <div class="preview-modal__actions">
-            <button class="btn btn--primary btn--full" id="modal-add-cart">
-              🛒 Agregar al Carrito
+            <button class="btn btn--primary btn--full" id="modal-add-cart" ${soldOut ? 'disabled' : ''}>
+              ${soldOut ? 'Sin stock por ahora' : '🛒 Agregar al Carrito'}
             </button>
           </div>
         </div>
@@ -344,6 +292,7 @@ export function openProductPreviewModal(product) {
   });
 
   overlay.querySelector('#modal-qty-plus')?.addEventListener('click', () => {
+    if (stock > 0 && qty >= stock) return; // no ofrecer más unidades de las que hay
     qty++;
     qtyVal.textContent = qty;
   });

@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard | Admin Voko</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <script type="module" src="/js/admin/auth-guard.js"></script>
   <link rel="stylesheet" href="/css/variables.css">
   <link rel="stylesheet" href="/css/base.css">
   <link rel="stylesheet" href="/css/components.css">
@@ -91,8 +94,13 @@
           </div>
           <div class="stat-card">
             <div class="stat-card__label">Productos Visibles</div>
-            <div class="stat-card__value" id="stat-low-stock">0</div>
+            <div class="stat-card__value" id="stat-visible">0</div>
             <div class="stat-card__change" style="color: var(--color-success);">🟢 En catálogo</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__label">Stock Bajo</div>
+            <div class="stat-card__value" id="stat-low-stock">0</div>
+            <div class="stat-card__change" style="color: var(--color-warning);">⚠️ Quedan 3 o menos</div>
           </div>
         </div>
 
@@ -147,16 +155,23 @@
         ¿Estás seguro de que deseas eliminar este registro de venta? Esta acción no se puede deshacer.
       </p>
 
-      <div style="background: var(--color-surface-container-low); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); border: 1px solid var(--color-outline-variant); margin-bottom: var(--space-6);">
+      <div style="background: var(--color-surface-container-low); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); border: 1px solid var(--color-outline-variant); margin-bottom: var(--space-5);">
         <div style="font-size: 11px; font-weight: bold; text-transform: uppercase; color: var(--color-primary); margin-bottom: 4px; letter-spacing: 0.5px;">Detalle de la venta:</div>
         <div id="modal-sale-items-preview" style="font-size: 13px; color: var(--color-on-surface); line-height: 1.4;"></div>
       </div>
 
-      <div style="display: flex; gap: var(--space-3); justify-content: flex-end;">
-        <button class="btn btn--tertiary" id="btn-cancel-delete">Cancelar</button>
-        <button class="btn btn--error" id="btn-only-delete" style="background: var(--color-error); color: white;">
-          🗑️ Eliminar Venta
+      <p style="font-size: 13px; color: var(--color-on-surface-variant); line-height: 1.5; margin-bottom: var(--space-5);">
+        Si la venta no se concretó, podés devolver estas unidades al stock. Si el producto igual salió del taller, eliminá la venta sin tocar el stock.
+      </p>
+
+      <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+        <button class="btn btn--primary btn--full" id="btn-restore-and-delete">
+          ↩️ Devolver al stock y eliminar
         </button>
+        <button class="btn btn--full" id="btn-only-delete" style="background: var(--color-error); color: #fff;">
+          🗑️ Eliminar sin tocar el stock
+        </button>
+        <button class="btn btn--tertiary btn--full" id="btn-cancel-delete">Cancelar</button>
       </div>
     </div>
   </div>
