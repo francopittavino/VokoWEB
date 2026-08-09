@@ -164,15 +164,27 @@ Además, `saveLocalProducts()` emite el evento `voko_products_updated` para que 
 
 La instancia de producción se creó con una versión distinta de `supabase_schema.sql`. Diferencias confirmadas contra la base real:
 
-| Tabla | Realidad |
-| --- | --- |
-| `ventas` | tiene `tipo`, **no tiene `metodo_pago`** |
-| `productos` | tiene `updated_at` (el script original no lo definía) |
-| `pedidos` | **no tiene** `telefono` ni `fecha_limite`, que el formulario web sí guarda en local |
+| Tabla | Columnas reales | Diferencia |
+| --- | --- | --- |
+| `ventas` | `id, total, tipo, created_at` | tiene `tipo`, **no tiene `metodo_pago`** |
+| `venta_items` | `id, venta_id, producto_id, cantidad, precio_unitario, subtotal` | **`subtotal` es NOT NULL** |
+| `productos` | …, `stock`, `updated_at` | tiene `updated_at` |
+| `pedidos` | `id, cliente, tipo, detalle, has_image, estado, created_at` | **no tiene** `telefono` ni `fecha_limite`, que el formulario web sí guarda en local |
 
-Esto causó un bug serio: `createSale()` insertaba `metodo_pago` → error `PGRST204` → la excepción abortaba la función **antes** del descuento de stock, que vivía al final. El `console.warn` lo hacía invisible y el stock volvía atrás en cada recarga.
+> Para verificar columnas contra la base real, sin adivinar:
+> `GET {SUPABASE_URL}/rest/v1/{tabla}?select=*&limit=1` con los headers `apikey` y `Authorization: Bearer`.
 
-**Lecciones aplicadas:** el descuento de stock (`decreaseRemoteStock`) va **separado** del registro de la venta, y los errores de sincronización se le muestran a quien usa el panel. `supabase_schema.sql` tiene ahora un bloque de `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` idempotente para alinear bases viejas. **Antes de agregar una columna al código, verificá que exista en la base real.**
+Estas diferencias causaron dos bugs seguidos, ambos silenciados por un `console.warn`:
+
+1. `createSale()` insertaba `metodo_pago` → `PGRST204` → la excepción abortaba la función **antes** del descuento de stock, que vivía al final. El stock volvía atrás en cada recarga.
+2. Ya corregido eso, el insert de `venta_items` omitía `subtotal` → `23502` → la venta quedaba registrada pero **sin detalle**, y sin detalle no se puede reponer stock al anularla.
+
+**Reglas que salieron de esto:**
+- El stock (`decreaseRemoteStock` / `increaseRemoteStock`) va **separado** del registro de la venta: lo crítico no puede depender de que lo accesorio funcione.
+- **Toda escritura contra la nube tiene que poder devolver stock también.** `increaseLocalStock` sin su contraparte remota hacía que la reposición desapareciera al recargar.
+- Los errores de sincronización se le **muestran** a quien usa el panel.
+- `createSale()` borra la cabecera si falla el detalle, para no dejar ventas huérfanas.
+- **Antes de agregar una columna al código, verificá que exista en la base real** con la consulta de arriba.
 
 ### Devolver stock al borrar una venta
 Sólo se puede reponer lo que la venta haya guardado en su array `items`. Las ventas viejas sin ese detalle muestran el botón deshabilitado: **nunca inventar el producto** (el código anterior usaba `products[0]` como fallback y le sumaba stock a un producto al azar).

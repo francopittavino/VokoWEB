@@ -206,37 +206,61 @@ export async function updateStock(id, newStock) {
  * @param {Array<{producto_id: string, cantidad: number}>} items
  * @returns {Promise<Array<{id: string, motivo: string}>>} los que fallaron
  */
-export async function decreaseRemoteStock(items) {
+async function adjustRemoteStock(items, signo) {
   const client = getClient();
   const failed = [];
 
   for (const item of items) {
+    const productId = item.producto_id || item.id;
+
     try {
       const { data: product, error: readError } = await client
         .from('productos')
         .select('stock')
-        .eq('id', item.producto_id)
+        .eq('id', productId)
         .single();
 
       if (readError || !product) {
-        failed.push({ id: item.producto_id, motivo: readError?.message || 'no encontrado' });
+        failed.push({ id: productId, motivo: readError?.message || 'no encontrado' });
         continue;
       }
 
-      const nuevoStock = Math.max(0, (Number(product.stock) || 0) - (Number(item.cantidad) || 0));
+      const delta = signo * (Number(item.cantidad) || 0);
+      const nuevoStock = Math.max(0, (Number(product.stock) || 0) + delta);
 
       const { error: writeError } = await client
         .from('productos')
         .update({ stock: nuevoStock })
-        .eq('id', item.producto_id);
+        .eq('id', productId);
 
-      if (writeError) failed.push({ id: item.producto_id, motivo: writeError.message });
+      if (writeError) failed.push({ id: productId, motivo: writeError.message });
     } catch (e) {
-      failed.push({ id: item.producto_id, motivo: e?.message || String(e) });
+      failed.push({ id: productId, motivo: e?.message || String(e) });
     }
   }
 
   return failed;
+}
+
+/** Descuenta stock en la nube (venta cobrada en el POS) */
+export function decreaseRemoteStock(items) {
+  return adjustRemoteStock(items, -1);
+}
+
+/** Devuelve stock a la nube (venta anulada desde el dashboard) */
+export function increaseRemoteStock(items) {
+  return adjustRemoteStock(items, +1);
+}
+
+/** Borra una venta y su detalle de la nube */
+export async function deleteSale(saleId) {
+  const client = getClient();
+
+  // Explícito, sin depender de que el FK tenga ON DELETE CASCADE
+  await client.from('venta_items').delete().eq('venta_id', saleId);
+
+  const { error } = await client.from('ventas').delete().eq('id', saleId);
+  if (error) throw error;
 }
 
 /**
@@ -262,13 +286,21 @@ export async function createSale(sale) {
     producto_id: item.producto_id,
     cantidad: item.cantidad,
     precio_unitario: item.precio_unitario,
+    // `subtotal` es NOT NULL en la tabla desplegada: sin este campo el insert
+    // falla con 23502 y la venta queda sin detalle.
+    subtotal: (Number(item.cantidad) || 0) * (Number(item.precio_unitario) || 0),
   }));
 
   const { error: itemsError } = await client
     .from('venta_items')
     .insert(items);
 
-  if (itemsError) throw itemsError;
+  if (itemsError) {
+    // Si el detalle no entra, borramos la cabecera para no dejar ventas
+    // huérfanas que inflen los totales sin poder reponer stock después.
+    await client.from('ventas').delete().eq('id', saleData.id);
+    throw itemsError;
+  }
 
   return saleData;
 }

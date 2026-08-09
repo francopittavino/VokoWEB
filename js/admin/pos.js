@@ -243,6 +243,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // bajó en Supabase, al recargar volvería al valor viejo y se podría vender
     // algo que ya no hay. Antes esto moría en un console.warn invisible.
     const problemas = [];
+    // Id de la venta en Supabase, para poder anularla después desde el dashboard
+    let ventaRemotaId = null;
 
     if (isSupabaseReady()) {
       const { decreaseRemoteStock, createSale } = await import('/js/supabase.js');
@@ -261,7 +263,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       // 2) El registro de la venta, para las métricas del dashboard.
       try {
-        await createSale({ total, items: itemsVenta });
+        const venta = await createSale({ total, items: itemsVenta });
+        ventaRemotaId = venta?.id || null;
       } catch (e) {
         problemas.push(`La venta no quedó registrada en la nube: ${e?.message || e}`);
       }
@@ -275,6 +278,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const now = new Date();
     salesHistory.unshift({
       id: 'sale-' + Date.now(),
+      remoteId: ventaRemotaId,
       timestamp: now.getTime(),
       fecha: now.toLocaleDateString('es-AR') + ' ' + now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
       total,

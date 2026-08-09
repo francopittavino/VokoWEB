@@ -11,6 +11,10 @@ import {
   PLACEHOLDER_IMAGE,
 } from './storage-helper.js';
 
+function isSupabaseReady() {
+  return SUPABASE_URL && !SUPABASE_URL.includes('TU-PROYECTO') && SUPABASE_URL.startsWith('http');
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   // Sidebar toggle
   const sidebar = document.getElementById('admin-sidebar');
@@ -83,39 +87,88 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // Action: Restore Stock + Delete Sale
-  btnRestoreAndDelete?.addEventListener('click', () => {
+  btnRestoreAndDelete?.addEventListener('click', async () => {
     if (!currentSaleToDelete) return;
 
-    const itemsToRestore = Array.isArray(currentSaleToDelete.items) ? currentSaleToDelete.items : [];
+    const venta = currentSaleToDelete;
+    const itemsToRestore = Array.isArray(venta.items) ? venta.items : [];
     if (itemsToRestore.length === 0) return;
 
-    // Escritura quirúrgica: relee el estado actual y suma sólo estas unidades.
+    btnRestoreAndDelete.disabled = true;
+    btnRestoreAndDelete.textContent = 'Devolviendo...';
+
+    const problemas = [];
+
+    // La nube primero: al cargar, el POS y el catálogo pisan el localStorage
+    // con lo que haya en Supabase. Si el stock no vuelve allá, la unidad
+    // repuesta desaparece en la próxima recarga.
+    if (isSupabaseReady()) {
+      try {
+        const { increaseRemoteStock, deleteSale } = await import('/js/supabase.js');
+
+        const fallidos = await increaseRemoteStock(itemsToRestore);
+        fallidos.forEach(f => {
+          const nombre = itemsToRestore.find(i => String(i.id || i.producto_id) === String(f.id))?.nombre || f.id;
+          problemas.push(`No se pudo devolver el stock de "${nombre}" (${f.motivo}).`);
+        });
+
+        if (venta.remoteId) {
+          try {
+            await deleteSale(venta.remoteId);
+          } catch (e) {
+            problemas.push(`La venta no se pudo borrar de la nube: ${e?.message || e}`);
+          }
+        }
+      } catch (e) {
+        problemas.push(`No se pudo sincronizar con la nube: ${e?.message || e}`);
+      }
+    }
+
+    // Escritura quirúrgica local: relee el estado actual y suma sólo estas unidades.
     const { restored, notFound } = increaseLocalStock(itemsToRestore);
 
-    const salesHistory = getLocalSales().filter(s => s.id !== currentSaleToDelete.id);
-    saveLocalSales(salesHistory);
+    saveLocalSales(getLocalSales().filter(s => s.id !== venta.id));
 
     closeDeleteModal();
+    btnRestoreAndDelete.disabled = false;
+    btnRestoreAndDelete.textContent = '↩️ Devolver al stock y eliminar';
     initStats();
 
     let mensaje = `✅ Venta eliminada. Se devolvieron ${restored} unidad${restored === 1 ? '' : 'es'} al stock.`;
     if (notFound.length) {
       mensaje += `\n\n⚠️ No se pudo devolver (ya no están en el inventario):\n• ${notFound.join('\n• ')}`;
     }
+    if (problemas.length) {
+      mensaje += `\n\n⚠️ Problemas de sincronización:\n• ${problemas.join('\n• ')}`;
+    }
     alert(mensaje);
   });
 
   // Action: Only Delete Sale (do not touch stock)
-  btnOnlyDelete?.addEventListener('click', () => {
+  btnOnlyDelete?.addEventListener('click', async () => {
     if (!currentSaleToDelete) return;
 
-    let salesHistory = getLocalSales();
-    salesHistory = salesHistory.filter(s => s.id !== currentSaleToDelete.id);
-    saveLocalSales(salesHistory);
+    const venta = currentSaleToDelete;
+    let problema = null;
+
+    if (isSupabaseReady() && venta.remoteId) {
+      try {
+        const { deleteSale } = await import('/js/supabase.js');
+        await deleteSale(venta.remoteId);
+      } catch (e) {
+        problema = e?.message || String(e);
+      }
+    }
+
+    saveLocalSales(getLocalSales().filter(s => s.id !== venta.id));
 
     closeDeleteModal();
     initStats();
-    alert('🗑️ Venta eliminada sin modificar el stock.');
+    alert(
+      problema
+        ? `🗑️ Venta eliminada en este dispositivo, sin modificar el stock.\n\n⚠️ Pero no se pudo borrar de la nube: ${problema}`
+        : '🗑️ Venta eliminada sin modificar el stock.'
+    );
   });
 
   // Calculate & render stats
@@ -140,7 +193,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Try Supabase if configured
     try {
-      if (SUPABASE_URL && !SUPABASE_URL.includes('TU-PROYECTO') && SUPABASE_URL.startsWith('http')) {
+      if (isSupabaseReady()) {
         const { getDashboardStats } = await import('/js/supabase.js');
         const stats = await getDashboardStats();
         if (stats) {

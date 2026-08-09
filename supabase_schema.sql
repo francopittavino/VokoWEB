@@ -70,12 +70,15 @@ CREATE TABLE IF NOT EXISTS public.ventas (
 );
 
 -- 4. Tabla de Detalle de Ventas
+-- OJO: `subtotal` es NOT NULL en la instancia de producción. Omitirlo hacía
+-- fallar el insert con el error 23502 y la venta quedaba sin detalle.
 CREATE TABLE IF NOT EXISTS public.venta_items (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     venta_id UUID REFERENCES public.ventas(id) ON DELETE CASCADE,
     producto_id UUID REFERENCES public.productos(id) ON DELETE SET NULL,
     cantidad INT NOT NULL CHECK (cantidad > 0),
-    precio_unitario NUMERIC(12,2) NOT NULL
+    precio_unitario NUMERIC(12,2) NOT NULL,
+    subtotal NUMERIC(12,2) NOT NULL
 );
 
 -- 5. Tabla de Pedidos Personalizados y Consultas Web
